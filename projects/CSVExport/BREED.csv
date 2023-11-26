@@ -1,0 +1,283 @@
+"CODE_BREED";"CODE_DEPARTURE";"CODE_SENDER";"NAME";"NAME_EN";"SHORTNAME";"SHORTNAME_EN";"MARK"
+61;11;1;"терская";"Tersk";"тер.";"tersk.";""
+62;10;1;"тракененская";"Trakehner";"трк";"Trk";"трк"
+63;10;1;"украинская верховая";"Ukrainische warmblut";"укр.верх.";"uv";"псп"
+64;6;1;"чистокровная арабская";"Arabian";"чк араб.";"chk arab.";"ox"
+65;1;1;"чистокровная верховая";"Thoroughbred";"чк верх.";"chk verkh.";"xx"
+220;10;1;"французкая верховая";"frantsuzkaya verkhovaya";"SF";"SF";"SF"
+221;10;1;"чешская полукровная";"cesky teplokrevnik";"чешск.";"CZEWB";"псп"
+68;-1;1;"кустанайская";"kustanayskaya";"кустан.";"kustan.";""
+69;-1;1;"делибозская";"delibozskaya";"делибоз.";"deliboz.";""
+70;-1;1;"нечистокровная";"nechistokrovnaya";"нчк";"nchk";""
+71;1;1;"регистр нечистокровных лошадей";"registr nechistokrovnykh loshadey";"не ч/к Рег";"ne ch/k Reg";""
+-1;-1;1;"";"";;;""
+50;17;1;"американская рысистая";"American Trotter";"ам.рыс.";"am.rys.";""
+51;8;1;"ахалтекинская";"Akhal-Teke";"ахт";"acht.";"Ах"
+52;9;1;"буденновская";"Budenny";"буд.";"bud.";"Б"
+53;10;1;"высококровная";"vysokokrovnaya";"вскр.";"vskr.";"выс"
+54;9;1;"донская";"donskaya";"дон";"don";"Д"
+55;15;1;"орловская рысистая";"Orlov trotter";"орл.рыс.";"orl. trot.";""
+56;12;1;"першерон";"persheron";"перш.";"persh.";""
+57;-1;1;"полукровная";"Warmblut";"полукр.";"Wb";""
+58;17;1;"русская рысистая";"Trotter";"рус.рыс.";"rus.rys.";""
+59;12;1;"русский тяжеловоз";"Russian Heavy Draft";"рус.тяж.";"rus.tyazh.";""
+60;12;1;"советский тяжеловоз";"Soviet Heavy Draft";"сов.тяж.";"sov.tyazh.";""
+222;10;1;"рысистая";"trotter";"рыс.";"rys.";""
+75;17;1;"стандартбредная";"American Trotter";"стандарт.";"standart.";""
+76;17;1;"французская рысистая";"French Trotter";"франц.рыс.";"frants.rys.";""
+78;17;1;"помесь I поколения";"pomes I pokoleniya";"пом.I пок.";"pom.I pok.";""
+79;17;1;"англо-кабардинская";"anglo-kabardinskaya";"анг.кабар.";"ang.kabar.";""
+80;17;1;"франко-американская помесь";"franko-amerikanskaya pomes";"фр.-амер.";"fr.-amer.";""
+81;17;1;"англо-рысистая помесь";"anglo-rysistaya pomes";"англо-рыс.";"anglo-rys.";""
+82;17;1;"тракено-алтайская помесь";"trakeno-altayskaya pomes";"трак.-алт.";"trak.-alt.";""
+83;17;1;"рыс.-трак.-алтайская помесь";"rys.-trak.-altayskaya pomes";"рыс-трк-ал";"rys-trk-al";""
+84;17;1;"тракено-рысистая помесь";"trakeno-rysistaya pomes";"трак.-рыс.";"trak.-rys.";""
+85;12;1;"владимирская";"Vladimir";"владим.";"vladim.";""
+86;15;1;"помесь первого поколения";"pomes pervogo pokoleniya";"помесь f1";"pomes f1";""
+87;15;1;"помесь второго поколения";"pomes vtorogo pokoleniya";"помесь f2";"pomes f2";""
+88;15;1;"сложная помесь";"slozhnaya pomes";"сл.помесь";"sl.pomes";""
+89;10;1;"ганноверская";"Hannoveraner";"ган.";"Hann";"ган"
+90;10;1;"русская верховая";"russkaja werhovaja";"рус. верх.";"rw";"псп"
+91;15;1;"помесь третьего поколения";"pomes tretego pokoleniya";"помесь f3";"pomes f3";""
+93;12;1;"неизвестного происхождения";"neizvestnogo proiskhozhdeniya";"неизв. пр.";"neizv. pr.";""
+94;9;1;"черноморская";"chernomorskaya";"черном.";"chernom.";""
+95;9;1;"кабардинская";"Kabardian";"каб.";"kab.";""
+96;9;1;"доно-черноморская";"dono-chernomorskaya";"доно-черн";"dono-chern";""
+97;12;1;"литовская тяжелоупряжная";"litovskaya tyazheloupryazhnaya";"лит.тяж.";"lit.tyazh.";""
+98;10;1;"латвийская";"Latvian Warmblut";"латв.";"LWB";"псп"
+99;10;1;"венгерская";"vengerskaya";"венг";"hung";"псп"
+100;10;1;"голштинская";"Holsteiner";"глш";"holst";"глш"
+101;9;1;"забайкальская";"zabaykalskaya";"забайк.";"zabayk.";""
+103;16;1;"междупородная помесь";"mezhduporodnaya pomes";"м.п.п.";"m.p.p.";""
+104;11;1;"стрелецкая";"Strelezkaja";"стрл.";"Strelezk";""
+106;16;1;"шетлендский пони";"Shetland Pony";"шетл.";"shetl.";""
+107;16;1;"эстонский пони";"estonskiy poni";"эст. пони";"est. poni";""
+108;16;1;"арабо-пони";"arabo-poni";"А-пони";"A-poni";""
+109;16;1;"эстонский клеппер";"estonskiy klepper";"Эст. кл.";"Est. kl.";""
+110;16;1;"спортивный пони";"sportivnyy poni";"СП";"SP";""
+111;16;1;"американская миниатюрная";"amerikanskaya miniatyurnaya";"АМ";"AM";""
+112;16;1;"миниатюрный шетлендский пони";"miniatyurnyy shetlendskiy poni";"МШ";"MSH";""
+113;16;1;"аппалуза";"appaluza";"Апп.";"App.";""
+114;16;1;"тип пони";"tip poni";"т.п.";"t.p.";""
+115;16;1;"мини-шетлендские пони";"mini-shetlendskie poni";"мини-шетл.";"mini-shetl.";""
+116;16;1;"уэльский пони";"Welsh Pony";"У";"U";""
+117;16;1;"немецкий райдинг пони";"deutch rieding pony";"НР";"NR";""
+118;11;1;"по типу арабская";"po tipu arabskaya";"т.А";"t.A";""
+120;11;1;"оригинальный араб";"originalnyy arab";"о.А.";"o.A.";""
+121;11;1;"шагия";"shagiya";"Ш";"SH";""
+123;11;1;"орлово-ростопчинская";"orlovo-rostopchinskaya";"орл.-рост.";"Orlov-Rost.";""
+124;11;1;"по типу чкв";"po tipu chkv";"т.чкв";"t.chkv";""
+126;10;1;"восточно-прусская";"vostochno-prusskaya";"В.-П.";"V.-P.";"псп"
+129;11;1;"по типу стрелецкая";"po tipu streletskaya";"т.С";"t.S";""
+130;11;1;"карачаевская";"karachaevskaya";"карач";"karach";""
+131;10;1;"латвийская упряжная";"Latvian Kaltblut";"лат.упр.";"LKB";"псп"
+132;10;1;"полукровная спортивная лошадь";"Warmblut Sportpferd";"псл.";"wsp";"псп"
+133;10;1;"мекленбургская";"meklenburgskaya";"мекл.";"mekl.";"псп"
+134;10;1;"голштино-венгерская";"golshtino-vengerskaya";"глш-венг.";"holst-hung";"псп"
+135;10;1;"бранденбургская";"brandenburgskaya";"брндб";"brnbg";"псп"
+136;10;1;"градицкая";"graditskaya";"град";"grad";"псп"
+137;10;1;"познанская";"poznanskaya";"позн.";"pozn.";"псп"
+138;10;1;"улучшенная";"uluchshennaya";"улучш.";"uluchsh.";"псп"
+139;10;1;"тракено-рысистая";"trakeno-rysistaya";"трк.-рыс.";"trk.-rys.";"спо"
+140;10;1;"англо-текинская";"anglo-tekinskaya";"англо-ахт";"anglo-akht";"псп"
+141;23;1;"англо-арабская";"anglo-arabskaya";"х";"x";"спо"
+142;10;1;"тракено-текинская";"trakeno-tekinskaya";"трк.-ахт.";"trk/acht";"псп"
+143;10;1;"англо-терская";"anglo-terskaya";"англо-тер.";"anglo-ter.";"псп"
+144;10;1;"датская полукровная";"datskaya polukrovnaya";"дат.";"dat.";"псп"
+145;10;1;"вестфальская";"Westfalische";"встф";"Westf";"псп"
+146;10;1;"тракено-буденновская";"trakeno-budennovskaya";"трк.-буд.";"trk.-bud.";"псп"
+147;10;1;"тракено-тяжеловозная";"trakeno-tyazhelovoznaya";"трк.-тяж.";"trk.-tyazh.";"спо"
+148;10;1;"тракено-латвийская";"trakeno-latviyskaya";"трк.-лтв.";"trk.-ltv.";"псп"
+149;10;1;"ганноверо-текинская";"gannovero-tekinskaya";"ган.-тек.";"gan.-tek.";"псп"
+150;10;1;"условно чистокровная верховая";"uslovno chistokrovnaya verkhovaya";"не записан";"ne zapisan";"псп"
+151;10;1;"бебербекская";"beberbekskaya";"ббрб";"bbrb";"спо"
+152;10;1;"торийская";"toriyskaya";"тори";"tori";"псп"
+153;10;1;"нечистопородная тракененская";"Trakehner nicht rein";"трк";"trk";"псп"
+154;10;1;"ганноверо-голштинская";"gannovero-golshtinskaya";"ган.-глш.";"gan.-glsh.";"псп"
+155;10;1;"великопольская";"welikopolskaja";"влкп";"WLKP";"псп"
+156;10;1;"мазурская";"mazurskaya";"маз";"maz";"псп"
+157;10;1;"поморские";"pomorskie";"пом.";"pom.";"псп"
+158;10;1;"ольденбургская";"Oldenburger";"олд";"Oldbg";"псп"
+159;10;1;"азово-черноморская";"azovo-chernomorskaya";"аз.-черн.";"az.-chern.";"псп"
+160;10;1;"тракено-терская";"trakeno-terskaya";"трк.-тер.";"trk.-ter.";"псп"
+161;10;1;"арабо-рысистая";"arabo-rysistaya";"ар.-рыс.";"ar.-rys.";"спо"
+162;10;1;"ганноверо-латвийская  помесь";"gannovero-latviyskaya";"ган.-лат.пом.";"gan.-lat.";"псп"
+163;10;1;"голштино-латвийская";"golshtino-latviyskaya";"глш-лат";"glsh-lat";"псп"
+164;10;1;"баварская полукровная";"Bayerische";"бавар";"Bavar";"спо"
+165;10;1;"беспородная";"ohne Rasse";"б/п";"o.R.";"спо"
+166;10;1;"помесь";"Mischling";"пом.";"pomes";"спо"
+167;10;1;"рейнландская (рейнская)";"reynlandskaya (reynskaya)";"рейн.";"reyn.";"псп"
+168;10;1;"шведская полукровная";"shvedskaya polukrovnaya";"швпл";"shvpl";"псп"
+169;10;1;"тракено-венгерская помесь";"trakeno-vengerskaya pomes";"трк.-венг.";"trk.-veng.";"псп"
+170;10;1;"тракено-голштинская";"trakeno-golshtinskaya";"трк-глш";"trk-glsh";"псп"
+171;10;1;"тракено-ганноверская";"trakeno-gannoverskaya";"трк-ган";"trk-gan";"псп"
+172;10;1;"ганноверо-рысистая помесь";"gannovero-rysistaya pomes";"ган-рыс";"gan-rys";"спо"
+173;10;1;"ганноверо-венгерская";"gannovero-vengerskaya";"ган-венг";"gan-veng";"псп"
+174;10;1;"англо-венгерская";"anglo-vengerskaya";"англо-венг";"anglo-veng";"псп"
+175;10;1;"торийско-рысистая помесь";"toriysko-rysistaya pomes";"тори-рыс.";"tori-rys.";"псп"
+176;10;1;"польская верховая";"polskaya verkhovaya";"пол.верх.";"SP";"псп"
+177;10;1;"англо-рысистая";"anglo-rysistaya";"англо-рыс";"anglo-rys";"псп"
+178;10;1;"происх. не подтверждено";"proiskh. ne podtverzhdeno";"н/п";"n/p";"спо"
+179;10;1;"ганноверская помесь";"gannoverskaya pomes";"ган.помесь";"gan.pomes";"спо"
+180;10;1;"голландская теплокровная";"gollandskaya teplokrovnaya";"KWPN";"KWPN";"псп"
+181;10;1;"бельгийская полукровная";"belgiyskaya polukrovnaya";"белг.";"belg.";"псп"
+182;10;1;"тракененская нечистопородная";"Trakehner";"трк не ч/п";"trk";"трк"
+183;10;1;"в типе терской лошади";"v tipe terskoy loshadi";"тер.(тип)";"ter.(tip)";"спо"
+184;10;1;"англо-норман";"anglo-norman";"ан-норм";"an-norm";"псп"
+185;10;1;"полукровная помесь";"Warmblut Mischung";"п/кр.пом.";"Mischung";"спо"
+186;10;1;"немецкая полукровная";"nemetskaya polukrovnaya";"нем.п/к";"nem.p/k";"спо"
+187;10;1;"тракененская помесь";"trakenenskaya pomes";"трк.помесь";"trk.pomes";"спо"
+188;10;1;"англо-тракено-кабардинская";"anglo-trakeno-kabardinskaya";"ан.трк.каб";"an.trk.kab";"спо"
+189;10;1;"тяжеловозно-ганноверская";"tyazhelovozno-gannoverskaya";"тяж.-ган.";"tyazh.-gan.";"спо"
+190;12;1;"тяжеловозная";"tyazhelovoznaya";"тяж.";"tyazh.";"спо"
+191;10;1;"арденская";"ardenskaya";"арден";"arden";"псп"
+192;10;1;"зангерсхайде";"Zangersheide";"Z";"Z";"псп"
+210;16;1;"немецкий классический пони";"Deutsches Classic Pony";"нем. кл. п.";"Dt. CPo";""
+209;8;1;"англо-текинская помесь";"Thr.bred-AkhalTek crossbred";"англ-тек";"Thr.-AkhT";""
+211;16;1;"немецкий полукровный шет. пони";"Dt. Part-bred Shetland Pony";"Нем. шет. п.";"DPbShP";""
+212;16;1;"американский класс. шет. пони";"American Classic Shet. Pony";"Ам. кл. шет. п.";"ACSh";""
+213;15;1;"фризская";"Friesian";"";;""
+223;10;1;"гессенская";"gessenskaya";"гесс.";"gess.";"псп"
+224;8;1;"ахалтекинская помесь";"akhaltekinskaya pomes";"ахт.пом.";"akhaltek. pom.";
+225;16;1;"тип мини пони";"tip mini poni";;"";
+231;10;1;"алтайская";"altayskaya";"алт.";"alt.";"псл"
+232;10;1;"орлово-тяжеловозная помесь";"orlovo-tyazhelovoznaya pomes";"орл.-тяж.";"orl.-tyazh.";"псл"
+226;16;1;"мини аппалуза";"mini appaluza";;"";
+227;16;1;"уэльский пони, секция A";"uelskiy poni, sektsiya A";;"";
+228;16;1;"уэльский пони, секция B";"uelskiy poni, sektsiya B";;"";
+229;16;1;"уэльский пони, секция C";"uelskiy poni, sektsiya C";;"";
+230;16;1;"уэльский пони, секция D";"uelskiy poni, sektsiya D";;"";
+233;10;1;"голландская верх. и пони(NRPS)";"Dutch Riding Horse and Pony Society";"NRPS";"NRPS";"псп"
+234;12;1;"клейдесдаль";"kleydesdal";;"";
+235;10;1;"белорусская упряжная";"belorusskaya upryazhnaya";"бел.упр.";"bel.upr.";"псл"
+237;10;1;"ирландская упряжная";"Irish Draught";"ирл.упряж.";"irl.upryazh.";"псп"
+238;10;1;"ирландская упряжная спортивная";"Irish Draught Sport Horse";"ирл.упряж.спорт.";"Irish Dr.Sport";"псп"
+375;12;1;"советский тяжеловоз I пок";"Sovetsky tyazhelovoz I pok";;;
+240;16;1;"андалузская (PRE)";"andaluzskaya";"андл.";"PRE";
+241;8;1;"упряжная";"upryazhnaya";"упг";"upg";
+243;10;1;"итальянская верховая";"italyanskaya vyerkhovaya";"итал.";"ital.";"псл"
+244;16;1;"башкирская";"bashkirskaya";;;
+245;16;1;"исландская";"islandskaya";;;
+246;16;1;"нью-форест пони";"nyu-forest poni";;;
+247;10;1;"немецкая спортивная лошадь";"Deutsches Sportpferd";"нем.спорт.";"Deu.sp.pf.";"спо"
+248;10;1;"бразильская верховая лошадь";"brazilskaya verkhovaya loshad";"браз.верх.";"Bras.reit.pf.";"спо"
+249;9;1;"доно-астраханская";"dono-astrakhanskaya";;;
+250;10;1;"ольденбургская конкурная";"Oldenburger- Spring Pferde";"Олд.конк";"OS";"псл"
+252;16;1;"уэльский пони WPBR";"uelskiy poni WPBR";;;
+253;16;1;"коник польский ";"konik polskiy";;;
+254;16;1;"райдинг пони";"rieding pony";;;
+255;10;1;"гронингенская";"groningenskaya";"гронинг.";"groning.";"псл"
+258;10;1;"кнабструппер";"Knabstrupper";"кнабст.";"Knabst.";"псл"
+287;10;1;"гельдерландерская";"Gelderlanderskaya";"гельд.";"Sgldt";"псл"
+256;16;1;"фелл пони";"fell poni";;;
+257;10;1;"цвайбрюкенская";"Zweibrucker";"цвбр";"Zwbr";"псл"
+259;10;1;"баден-вюртенбергская";"baden-vyurtenbergskaya";"баден-вюрт.";"baden-vyurt.";"псп"
+260;10;1;"голштинская помесь";"golshtinskaya pomes";"голш.пом.";"golsh.pom.";"псп"
+262;19;1;"новоалтайская";"Novoaltaiskaya";;;
+263;19;1;"тяж.-рыс.-алт.";"tyazh.-rys.-alt.";"тяж.-рыс.-алт.";"tyazh.-rys.-alt.";
+264;19;1;"по типу рыс.-тяж.-алт.";"po tipu rys.-tyazh.-alt.";;;
+265;19;1;"по типу рыс.-алт.";"po tipu rys.-alt.";;;
+266;19;1;"по типу тяж.-рыс.-алт.";"po tipu tyazh.-rys.-alt.";;;
+267;19;1;"по типу верх-рыс.-алт.";"po tipu verkh-rys.-alt.";;;
+268;19;1;"по типу рыс.-верх.-алт.";"po tipu rys.-verkh.-alt.";;;
+269;19;1;"по типу верх.-алт.";"po tipu verkh.-alt.";;;
+270;19;1;"по типу тяж.-алт.";"po tipu tyazh.-alt.";;;
+271;19;1;"по типу верх.-тяж.-алт.";"po tipu verkh.-tyazh.-alt.";;;
+272;19;1;"по типу рыс.-тяж.-верх.-алт.";"po tipu rys.-tyazh.-verkh.-alt.";;;
+273;19;1;"по типу верх.-рыс.-тяж.-алт.";"po tipu verkh.-rys.-tyazh.-alt.";;;
+275;19;1;"орл.-алт.";"orl.-alt.";"орл.-алт.";"orl.-alt.";
+276;19;1;"рыс.-алт.";"rys.-alt.";"рыс.-алт.";"rys.-alt.";
+280;19;1;"эстон.ард.";"eston.ard.";"эстон.ард.";"eston.ard.";
+281;19;1;"рыс.-тяж.-алт.";"rys.-tyazh.-alt.";"рыс.-тяж.-алт.";"rys.-tyazh.-alt.";
+282;19;1;"кб.-рыс.-алт.";"kb.-rys.-alt.";"кб.-рыс.-алт.";"kb.-rys.-alt.";
+283;19;1;"эа.-рыс.-алт.";"ea.-rys.-alt.";"эа.-рыс.-алт.";"ea.-rys.-alt.";
+288;10;1;"саксен-анхальт-цербстская";"Sachsen-Anhalt";"сакс.-анх.";"SAnha";"псп"
+284;19;1;"жм.-рыс.-алт.";"zhm.-rys.-alt.";"жм.-рыс.-алт.";"zhm.-rys.-alt.";
+286;19;1;"д.-рыс.-алт.";"d.-rys.-alt.";"д.-рыс.-алт.";"d.-rys.-alt.";
+295;12;1;"советско-литовская помесь";"sovetsko-litovskay pomes";"сов.-лит. пом.";"sov.-lit. pom.";
+296;12;1;"советско-русская помесь";"sovetsko-russkay pomes";"сов.-рус. пом.";"sov.-rus. pom.";
+299;12;1;"советско-владимирская помесь";"sovetsko-vladimirskay pomes";"сов.-влад. пом.";"sov.-vlad. pom";
+301;12;1;"бельгийский арден";"belgiski arden";"бел. ард.";"bel. ard";
+302;12;1;"французский арден";"francuzskiy arden";"франц.ард.";"franc. ard.";
+303;12;1;"шайр";"shire";"шайр";"shire";
+304;12;1;"по типу советский тяжеловоз";"po tipu sovetski tyjelovoz";"по типу совет. тяж.";"po tipu sov. tyj.";
+305;12;1;"по типу першерон";"po tipu persheron";"по типу перш.";"po tipu persh.";
+306;12;1;"по типу русский тяжеловоз";"po tipu russki tyjelovoz";"по типу рус. тяж.";"po tipu rus. tyj.";
+307;12;1;"тинкер";"tinker";"тинкер";"tinker";
+309;12;1;"русская тяжеловозная II пок.";"russkay tyjelovoznay II pokoleniy";"рус. тяж. II покол.";"rus. tyj. II pok.";
+310;12;1;"русская тяжеловозная III пок.";"russkay tyjelovoznay III pokole";"рус. тяж. III пок.";"rus. tyj. III pok.";
+311;12;1;"русская тяжеловозная IV пок.";"russkay tyjelovoznay IV pokoleniy";"рус. тяж. IV пок.";"rus. tyj. IV pok.";
+312;12;1;"советский тяжеловоз II поколен";"sovetski tyjelovoz II pokoleniy";"сов. тяж. II пок.";"sov. tyj. II pok.";
+313;12;1;"советский тяжеловоз III поколе";"sovetski tyjelovoz III pokoleniy";"сов. тяж. III пок.";"sov. tyj. III pok.";
+314;12;1;"советский тяжеловоз IV поколен";"sovetski tyjelovoz IV pokoleniy";"сов. тяж. IV пок.";"sov. tyj. IV pok.";
+315;12;1;"брабансон ";"brabanson";"брабансон";"brabanson";
+316;16;1;"норвежский фьорд";"Norvezhsky ford";"норв.фьорд";"Norv.ford";
+317;16;1;"уэльский пони, секция NWR";"Uelsky poni, sektsya NWR";"уэл. пони, NWR";"Uel. poni, NWR";
+332;9;1;"ахалтекино-буденновская";"akhaltekino-budennovskaya";;;
+333;9;1;"ахалтекино-донская";"akhaltekino-donskaya";;;
+319;16;1;"исландский пони";"icelandic pony";;;
+320;16;1;"фалабелла";"falabella";;;
+321;16;1;"пинто";"pinto";;;
+325;16;1;"коннемара";"connemara";;;
+326;16;1;"датский аппалуза";"danish appaloosa";;;
+327;16;1;"аргентинский пони";"argentine pony";;;
+328;16;1;"меренс(арьежский пони)";"merenc ariegeois pony";;;
+329;16;1;"американский райдинг пони";"american riding pony";;;
+330;16;1;"эксмурский пони";"exmoor pony";;;
+331;16;1;"дартмурский пони";"dartmoor pony";;;
+334;16;1;"миниатюрная лошадь";"miniature horse";;;
+337;10;1;"латвийская помесь";"Latvian Mischling";"лат.пом.";"lat.pom.";"псп"
+338;9;1;"англо-донская";"anglo-don";"ан-дон";"an-don";
+340;10;1;"ганноверо-латв.-бел.упр.помесь";"gannovero-latv.-bel.upr.pomes";"ган-лат.пом.";"gan-lat.pom.";"псп"
+341;10;1;"ганноверо-торийская помесь";"gannovero-toryskaya pomes";"ган.-тор. пом.";"gan.-tor. pom.";"псп"
+342;10;1;"ганноверо-торийско-тек. помесь";"gannovero-torysko-tek. pomes";"ган-тор.тек.пом.";"gan-tor.tek.pom.";"псп"
+343;12;1;"русская тяжеловозная I пок.";"russkaya tyazhelovoznaya I pok";"рус. тяж. I пок.";"rus. tyazh. I pok.";
+344;12;1;"рысисто- тяжеловозная помесь";"rysisto- tyazhelovoznaya pomes";"рыс- тяж. помесь";"rys- tyazh. pomes";
+345;12;1;"русско-литовская помесь";"russko-litovskaya pomes";;;
+346;12;1;"владимирская I поколения";"vladimirskaya I pokolenya";;;
+347;12;1;"владимирская II поколения";"vladimirskaya II pokolenya";;;
+348;12;1;"владимирская III поколения";"vladimirskaya III pokolenya";;;
+349;12;1;"першерон II поколения";"persheron II pokolenya";;;
+350;12;1;"владимирская IV пок.";"Vladimirskaya IV pok.";;;
+351;10;1;"вюртенбергская";"Wurttemberger";"Вюрт.";"Wurt.";"псп"
+353;12;1;"шведский арден";"shvedtsky arden";;;
+354;12;1;"литовская тяж. 2 пок";"litovskaya tyazh. 2 pok";;;
+355;12;1;"литовская тяж. 1 пок";"litovskaya tyazh. 1 pok";;;
+356;12;1;"першерон 1 поколения";"persheron 1 pokolenya";;;
+357;20;1;"чешская теплокровная";"cheshskaya teplokrovnaya";;;
+358;12;1;"першерон III пок.";"persheron III pok.";;;
+359;20;1;"португальский лузитано";"Portugalsky luzitano";;;
+360;20;1;"французский лузитано";"Frantsuzsky luzitano";;;
+362;20;1;"испанская чистопородная";"ispanskaya chp";"испанская чп";"ispanskaya chp";
+363;12;1;"польский тяжеловоз";"polsky tyazhelovoz";;;
+361;20;1;"лузитано";"luzitano";;;
+364;25;1;"вятская";"vyatskaya";;;
+365;12;1;"в типе владимирской породы";"v tipe vladimirskoy porody";;;
+366;12;1;"в типе русского тяжеловоза";"v tipe russkogo tyazhelovoza";;;
+369;12;1;"рейнско-немецкая";"reynsko-nemetskaya";;;
+370;10;1;"тюрингская";"Thuringer";"трн";"Thur";"псп"
+393;11;1;"по типу терская";"po tipu terskaya";;;"псп"
+373;16;1;"поло-пони";"polo-poni";;;
+374;16;1;"мини мул";"mini mul";;;
+376;20;1;"французский сель";"Frantsuzsky sel";;;
+377;10;1;"KWPN";"KWPN";;;
+378;10;1;"Selle Francais";"Селль";;;
+379;10;1;"ахалтекино-латвийская помесь";"akhaltekino-latvyskaya pomes";"тек.-лат.";"tek.-lat.";"псп"
+380;10;1;"терско-латвийская помесь";"tersko-latvyskaya pomes";"тер.-лат.";"ter.-lat.";"псп"
+381;10;1;"датская ольденбургская";"Dansk Odenborg Avl";"дат.олд.";"DOA";"псп"
+382;10;1;"австрийская полукровная";"Austrian Warmblood";"австр.";"AUT";"псп"
+384;20;1;"якутская";"yakutskaya";;;
+385;10;1;"англо-европейская";"Anglo European Studbook";"AES";"AES";"псп"
+386;12;1;"литовская тяжелоупр. 3 пок.";"litovskaya tyazheloupr. 3- pok.";;;
+388;10;1;"орловская верховая";"Orlov Reitpferd";"орл.верх.";"orl.";"псп"
+389;10;1;"ростопчинская";"rostopchinskaya";"рстп.";"rstp.";"псп"
+391;11;1;"арабо-горская";"arabo-gorskaya";"ар.-гор.";"ar.-gor.";
+392;10;1;"пони скалистых гор";"poni skalistykh gor";"пони";"poni";"псп"
+394;11;1;"терская полукровная";"terskaya polukrovnaya";"тер.плк.";"Tersk.";"псп"
+395;10;1;"словенская теплокровная";"slovenskaya teplokrovnaya";"СТ";"ST";
+396;10;1;"украинская спортивная";"ukrainskaya sportivnaya";;;
+399;11;1;"терская помесь";"terskaya pomes";"тер.пом.";"ter.pom.";"пом"
+400;11;1;"терская*";"terskaya";;"trsk";"тр2"
+401;20;1;"англо-карачаевская помесь";"anglo-karachayevskaya pomes";"англо-карач";"anglo-karach";
+403;10;1;"берлин-бранденбургская";"Berlin Brandenburg";"Берл.-Бр.";"Berl-Brand";"псп"
+404;20;1;"квотерхорс";"kvaterkhors";;;
