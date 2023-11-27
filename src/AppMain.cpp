@@ -45,7 +45,7 @@ SELECT
 FROM RDB$RELATIONS R
 WHERE R.RDB$SYSTEM_FLAG = 0 AND
       R.RDB$RELATION_TYPE = 0 AND
-      TRIM(R.RDB$RELATION_NAME) SIMILAR TO CAST(? AS VARCHAR(4096))
+      TRIM(R.RDB$RELATION_NAME) SIMILAR TO CAST(? AS VARCHAR(8191))
 ORDER BY R.RDB$RELATION_NAME
 )";
 
@@ -60,7 +60,7 @@ JOIN RDB$PAGES P ON P.RDB$RELATION_ID = R.RDB$RELATION_ID
 WHERE R.RDB$SYSTEM_FLAG = 0 AND
       R.RDB$RELATION_TYPE = 0 AND
       P.RDB$PAGE_TYPE = 4 AND
-      TRIM(R.RDB$RELATION_NAME) SIMILAR TO CAST(? AS VARCHAR(4096))
+      TRIM(R.RDB$RELATION_NAME) SIMILAR TO CAST(? AS VARCHAR(8191))
 ORDER BY R.RDB$RELATION_NAME, P.RDB$PAGE_SEQUENCE
 )";
 
@@ -82,6 +82,14 @@ namespace FBExport
 
     struct TableDesc
     {
+        TableDesc() = default;
+        TableDesc(const OutputRecord& rec)
+            : releation_id(rec->releation_id)
+            , relation_name(rec->relation_name.str, rec->relation_name.length)
+            , page_sequence(rec->page_sequence)
+            , pp_cnt(rec->pp_cnt)
+        {}
+
         short releation_id;
         std::string relation_name;
         int32_t page_sequence;
@@ -97,18 +105,11 @@ namespace FBExport
         const std::string& tableIncludeFilter,
         bool singleWorker = true)
     {
-        // todo: куча
-        InputRecord input(status, master);
-        input.clear();
-        input->relation_nameNull = false;
-        input->relation_name.length = static_cast<ISC_USHORT>(tableIncludeFilter.size());
-        tableIncludeFilter.copy(input->relation_name.str, input->relation_name.length);
-
-
         OutputRecord output(status, master);
         output.clear();
 
         Firebird::AutoRelease<Firebird::IStatement> stmt;
+
         if (singleWorker) {
             stmt.reset(att->prepare(
                 status,
@@ -130,11 +131,20 @@ namespace FBExport
             ));
         }
 
+        // This function is executed once, so here you can allocate memory on the heap without fear of re-allocation.
+        Firebird::AutoRelease<Firebird::IMessageMetadata> inputMeta(
+            stmt->getInputMetadata(status)
+        );
+        std::vector<unsigned char> inputData(inputMeta->getMessageLength(status));
+        *reinterpret_cast<short*>(inputData.data() + inputMeta->getNullOffset(status, 0)) = false; // nullInd
+        *reinterpret_cast<short*>(inputData.data() + inputMeta->getOffset(status, 0)) = static_cast<short>(tableIncludeFilter.size());
+        tableIncludeFilter.copy(reinterpret_cast<char*>(inputData.data() + inputMeta->getOffset(status, 0) + 2), tableIncludeFilter.size());
+
         Firebird::AutoRelease<Firebird::IResultSet> rs(stmt->openCursor(
             status,
             tra,
-            input.getMetadata(),
-            input.getData(),
+            inputMeta,
+            inputData.data(),
             output.getMetadata(),
             0
         ));
@@ -142,12 +152,7 @@ namespace FBExport
         std::vector<TableDesc> tables;
         while (rs->fetchNext(status, output.getData()) == Firebird::IStatus::RESULT_OK)
         {
-            tables.emplace_back(
-                output->releation_id,
-                std::string(output->relation_name.str, output->relation_name.length),
-                output->page_sequence,
-                output->pp_cnt
-            );
+            tables.emplace_back(output);
         }
 
         rs->close(status);

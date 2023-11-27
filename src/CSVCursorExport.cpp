@@ -1,5 +1,6 @@
 #include "CSVCursorExport.h"
 #include <cstdarg>
+#include <sstream>
 
 using namespace std;
 
@@ -78,6 +79,16 @@ std::string getScaledInteger(const T value, short scale)
 	return vformat("%d.%0*d", int_value, -scale, frac_value);
 }
 
+std::string getBinaryString(const std::byte* data, size_t length)
+{
+	std::stringstream ss;
+	if (data) {
+		for (unsigned int i = 0; i < length; ++i)
+			ss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(*data++);
+	}
+	return ss.str();
+}
+
 std::string escapeMetaName(const unsigned int sqlDialect, const std::string& name)
 {
 	if (name == "RDB$DB_KEY")
@@ -149,8 +160,13 @@ namespace FBExport
 
 	void CSVExportTable::printHeader(Firebird::ThrowStatusWrapper* status, csv::CSVFile& csv)
 	{
-
-		// todo: check prepare
+		if (!m_stmt) {
+			std::string message = "Statement not prepared";
+			ISC_STATUS statusVector[] = {isc_arg_gds, isc_random,
+			   isc_arg_string, (ISC_STATUS)message.c_str(),
+			   isc_arg_end };
+			status->setErrors(statusVector);
+		}
 		for (const auto& field : m_fields) {
 			csv << field.field;
 		}
@@ -159,7 +175,13 @@ namespace FBExport
 
 	void CSVExportTable::printData(Firebird::ThrowStatusWrapper* status, csv::CSVFile& csv, int64_t ppNum)
 	{
-		// todo: check prepare
+		if (!m_stmt) {
+			std::string message = "Statement not prepared";
+			ISC_STATUS statusVector[] = { isc_arg_gds, isc_random,
+			   isc_arg_string, (ISC_STATUS)message.c_str(),
+			   isc_arg_end };
+			status->setErrors(statusVector);
+		}
 		std::vector<unsigned char> buffer(m_outMetadata->getMessageLength(status));
 
 		Firebird::AutoRelease<Firebird::IResultSet> rs;
@@ -230,17 +252,33 @@ namespace FBExport
 				}
 				case SQL_TEXT:
 				{
-					// TODO: binary
-					std::string s(reinterpret_cast<char*>(valuePtr), field.length);
-					csv << rtrim(s);
+					if (field.charset == 1) {
+					    // BINARY(N)
+						std::byte* b = reinterpret_cast<std::byte*>(valuePtr);
+						csv << rtrim(getBinaryString(b, field.length));
+						// TODO: special case BINARY(16) as GUID
+					}
+					else {
+						// CHAR(N)
+						std::string s(reinterpret_cast<char*>(valuePtr), field.length);
+						csv << rtrim(s);
+					}
 					break;
 				}
 				case SQL_VARYING:
 				{
-					// todo: varbinary
-					auto len = *reinterpret_cast<short*>(valuePtr);
-					std::string s(reinterpret_cast<char*>(valuePtr + 2), len);
-					csv << s;
+					if (field.charset == 1) {
+						// VARBINARY(N)
+						auto len = *reinterpret_cast<short*>(valuePtr);
+						std::byte* b = reinterpret_cast<std::byte*>(valuePtr + 2);
+						csv << getBinaryString(b, len);
+					}
+					else {
+						// VARCHAR(N)
+						auto len = *reinterpret_cast<short*>(valuePtr);
+						std::string s(reinterpret_cast<char*>(valuePtr + 2), len);
+						csv << s;
+					}
 					break;
 				}
 				case SQL_SHORT:
@@ -377,20 +415,14 @@ namespace FBExport
 				}
 				case SQL_BLOB:
 				{
-					auto blob_id = *reinterpret_cast<ISC_QUAD*>(valuePtr);
 					// can not support export blob data, 
-					// but export blob id
-					auto s = vformat("%d:%d", blob_id.gds_quad_high, blob_id.gds_quad_low);
-					csv.write(s);
+					csv << nullptr;
 					break;
 				}
 				case SQL_ARRAY:
 				{
-					auto array_id = *reinterpret_cast<ISC_QUAD*>(valuePtr);
 					// can not support export array data, 
-					// but export blob id
-					auto s = vformat("%d:%d", array_id.gds_quad_high, array_id.gds_quad_low);
-					csv.write(s);
+					csv << nullptr;
 					break;
 				}
 				}
