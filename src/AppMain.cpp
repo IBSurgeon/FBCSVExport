@@ -475,8 +475,8 @@ namespace FBExport
 
             auto tables = getTablesDesc(&status, att, tra, m_sqlDialect, m_filter, m_parallel == 1);
 
-            auto start_p = std::chrono::steady_clock::now();
             if (m_parallel == 1) {
+                auto start_p = std::chrono::steady_clock::now();
                 FBExport::CSVExportTable csvExport(att, tra, master);
                 for (const auto& tableDesc : tables) {
                     csvExport.prepare(&status, tableDesc.relation_name, m_sqlDialect, false);
@@ -485,8 +485,13 @@ namespace FBExport
                     csvExport.printHeader(&status, csv);
                     csvExport.printData(&status, csv);
                 }
+                auto end_p = std::chrono::steady_clock::now();
+                std::cout << "Elapsed time in milliseconds parallel_part: "
+                    << std::chrono::duration_cast<std::chrono::milliseconds>(end_p - start_p).count()
+                    << " ms" << std::endl;
             }
             else {
+                auto start_p = std::chrono::steady_clock::now();
                 const auto workerCount = m_parallel - 1;
 
                 // получить номер снимка
@@ -586,7 +591,6 @@ namespace FBExport
                 }
 
                 auto end_p = std::chrono::steady_clock::now();
-
                 std::cout << "Elapsed time in milliseconds parallel_part: "
                     << std::chrono::duration_cast<std::chrono::milliseconds>(end_p - start_p).count()
                     << " ms" << std::endl;
