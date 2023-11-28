@@ -475,6 +475,7 @@ namespace FBExport
 
             auto tables = getTablesDesc(&status, att, tra, m_sqlDialect, m_filter, m_parallel == 1);
 
+            auto start_p = std::chrono::steady_clock::now();
             if (m_parallel == 1) {
                 FBExport::CSVExportTable csvExport(att, tra, master);
                 for (const auto& tableDesc : tables) {
@@ -584,10 +585,10 @@ namespace FBExport
                     std::rethrow_exception(exceptionPointer);
                 }
 
-                auto end_1 = std::chrono::steady_clock::now();
+                auto end_p = std::chrono::steady_clock::now();
 
-                std::cout << "Elapsed time in milliseconds before merge files: "
-                    << std::chrono::duration_cast<std::chrono::milliseconds>(end_1 - start).count()
+                std::cout << "Elapsed time in milliseconds parallel_part: "
+                    << std::chrono::duration_cast<std::chrono::milliseconds>(end_p - start_p).count()
                     << " ms" << std::endl;
 
                 // merge part csv files into main csv file
