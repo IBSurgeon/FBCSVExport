@@ -492,7 +492,7 @@ namespace FBExport
                 auto snapshotNumber = getSnapshotNumber(&status, tra);
                 std::exception_ptr exceptionPointer = nullptr;
 
-                std::atomic<int64_t> counter = 0;
+                std::atomic<size_t> counter = 0;
 
                 std::vector<std::thread> thread_pool;
                 thread_pool.reserve(workerCount);
@@ -524,7 +524,7 @@ namespace FBExport
                         try {
                             FBExport::CSVExportTable csvExport(att, tra, master);
                             while (true) {
-                                int64_t localCounter = counter++;
+                                size_t localCounter = counter++;
                                 if (localCounter >= tables.size())
                                     break;
                                 const auto& tableDesc = tables[localCounter];
@@ -560,7 +560,7 @@ namespace FBExport
                 FBExport::CSVExportTable csvExport(att, tra, master);
                 Firebird::ThrowStatusWrapper status(master->getStatus());
                 while (true) {
-                    int64_t localCounter = counter++;
+                    size_t localCounter = counter++;
                     if (localCounter >= tables.size())
                         break;
                     const auto& tableDesc = tables[localCounter];

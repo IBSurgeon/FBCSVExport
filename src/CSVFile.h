@@ -50,7 +50,7 @@ namespace csv
             return write(escape(val));
         }
 
-        CSVFile& operator << (std::nullptr_t val)
+        CSVFile& operator << ([[maybe_unused]] std::nullptr_t val)
         {
             return write("");
         }
