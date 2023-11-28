@@ -494,7 +494,7 @@ namespace FBExport
                 auto start_p = std::chrono::steady_clock::now();
                 const auto workerCount = m_parallel - 1;
 
-                // получить номер снимка
+                // get snapshot number
                 auto snapshotNumber = getSnapshotNumber(&status, tra);
                 std::exception_ptr exceptionPointer = nullptr;
 
