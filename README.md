@@ -8,3 +8,9 @@ cmake ../projects/CSVExport
 make
 ```
 
+```
+CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./single
+
+CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./multi
+```
+
