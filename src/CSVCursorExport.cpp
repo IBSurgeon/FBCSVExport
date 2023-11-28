@@ -393,7 +393,8 @@ namespace FBExport
 						status, tsPtr,
 						&year, &month, &day,
 						&hours, &minutes, &seconds, &fractions,
-						std::size(tsBuffer), tsBuffer
+					    static_cast<unsigned int>(std::size(tsBuffer)), 
+						tsBuffer
 					);
 					auto s = vformat("%d-%02d-%02d %02d:%02d:%02d.%04d %s", year, month, day, hours, minutes, seconds, fractions, tsBuffer);
 					csv.write(s);
@@ -407,7 +408,8 @@ namespace FBExport
 					fbUtil->decodeTimeTz(
 						status, tsPtr,
 						&hours, &minutes, &seconds, &fractions,
-						std::size(tsBuffer), tsBuffer
+						static_cast<unsigned int>(std::size(tsBuffer)),
+						tsBuffer
 					);
 					auto s = vformat("%02d:%02d:%02d.%04d %s", hours, minutes, seconds, fractions, tsBuffer);
 					csv.write(s);

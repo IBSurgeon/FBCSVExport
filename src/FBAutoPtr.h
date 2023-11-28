@@ -87,7 +87,7 @@ namespace Firebird
 			: ptr(v)
 		{}
 
-		AutoPtr(AutoPtr&& v)
+		AutoPtr(AutoPtr&& v) noexcept
 			: ptr(v.ptr)
 		{
 			v.ptr = nullptr;

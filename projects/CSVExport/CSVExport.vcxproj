@@ -155,7 +155,9 @@
     <ClCompile Include="..\..\src\CSVCursorExport.cpp" />
     <ClCompile Include="..\..\src\CSVFile.cpp" />
     <ClCompile Include="..\..\src\sqlda.cpp" />
-    <ClCompile Include="..\..\src\CSVFile.h" />
+    <ClCompile Include="..\..\src\CSVFile.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\CSVCursorExport.h" />

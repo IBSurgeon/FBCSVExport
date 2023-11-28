@@ -181,7 +181,7 @@ namespace FBExport
                 break;
 
             case fb_info_tra_snapshot_number:
-                len = isc_vax_integer(reinterpret_cast<char*>(p), 2);
+                len = static_cast<short>(isc_vax_integer(reinterpret_cast<char*>(p), 2));
                 p += 2;
                 ret = isc_portable_integer(p, len);
                 p += len;
