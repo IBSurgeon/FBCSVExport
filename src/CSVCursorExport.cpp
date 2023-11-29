@@ -1,4 +1,5 @@
 #include "CSVCursorExport.h"
+#include "guid.h"
 #include <cstdarg>
 #include <sstream>
 
@@ -253,10 +254,18 @@ namespace FBExport
 				case SQL_TEXT:
 				{
 					if (field.charset == 1) {
-					    // BINARY(N)
-						std::byte* b = reinterpret_cast<std::byte*>(valuePtr);
-						csv << rtrim(getBinaryString(b, field.length));
-						// TODO: special case BINARY(16) as GUID
+						if (field.length == 16) {
+							// special case BINARY(16) as GUID
+							auto guid = reinterpret_cast<Firebird::Guid*>(valuePtr);
+							char guidBuff[Firebird::GUID_BUFF_SIZE + 1] = { 0 };
+							Firebird::GuidToString(guidBuff, guid);
+							csv.write(guidBuff);
+						}
+						else {
+							// BINARY(N)
+							std::byte* b = reinterpret_cast<std::byte*>(valuePtr);
+							csv << rtrim(getBinaryString(b, field.length));
+						}
 					}
 					else {
 						// CHAR(N)
@@ -288,7 +297,7 @@ namespace FBExport
 						csv << value;
 					}
 					else {
-						csv.write(getScaledInteger(value, field.scale));
+						csv.write(getScaledInteger(value, static_cast<short>(field.scale)));
 					}
 					break;
 				}
@@ -299,7 +308,7 @@ namespace FBExport
 						csv << value;
 					}
 					else {
-						csv.write(getScaledInteger(value, field.scale));
+						csv.write(getScaledInteger(value, static_cast<short>(field.scale)));
 					}
 					break;
 				}
@@ -311,7 +320,7 @@ namespace FBExport
 						csv << value;
 					}
 					else {
-						csv.write(getScaledInteger(value, field.scale));
+						csv.write(getScaledInteger(value, static_cast<short>(field.scale)));
 					}
 					break;
 				}
@@ -333,7 +342,6 @@ namespace FBExport
 				case SQL_D_FLOAT:
 				case SQL_DOUBLE:
 				{
-					// TODO: scale
 					auto value = *reinterpret_cast<double*>(valuePtr);
 					csv << value;
 					break;

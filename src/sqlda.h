@@ -22,10 +22,6 @@ namespace Firebird
         unsigned charset = 0;
         unsigned offset = 0;
         unsigned nullOffset = 0;
-
-        short originalType = 0;
-        short columnSize = 0;
-        short originalScale = 0;
     };
 
     using SQLDAList = std::vector<SQLDA>;

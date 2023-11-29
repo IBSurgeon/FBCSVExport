@@ -19,10 +19,10 @@ namespace fs = std::filesystem;
 enum class OptState { NONE, DATABASE, USERNAME, PASSWORD, CHARSET, DIALECT, OUTPUT_DIR, FILTER, SEPARATOR, PARALLEL };
 
 constexpr char HELP_INFO[] = R"(
-Usage fb_repl_print [file_path] <options>
+Usage CSVExport [out_dir] <options>
 General options:
     -h [ --help ]                        Show help
-    -o [ --output-dir ] path             Output directory                                        
+    -o [ --output-dir ] path             Output directory
     -H [ --print-header ]                Print CSV header, default true
     -f [ --table-filter ]                Table filter
     -S [ --column-separator ]            Column separator, default ","
@@ -32,7 +32,7 @@ Database options:
     -d [ --database ] connection_string  Database connection string
     -u [ --username ] user               User name
     -p [ --password ] password           Password
-    -c [ --charset ] ch                  Character set, default UTF8
+    -c [ --charset ] charset             Character set, default UTF8
     -s [ --sql-dialect ] dialect         SQL dialect, default 3
 )";
 
@@ -64,14 +64,10 @@ WHERE R.RDB$SYSTEM_FLAG = 0 AND
 ORDER BY R.RDB$RELATION_NAME, P.RDB$PAGE_SEQUENCE
 )";
 
-static auto master = Firebird::fb_get_master_interface();
+static auto fb_master = Firebird::fb_get_master_interface();
 
 namespace FBExport
 {
-
-    FB_MESSAGE(InputRecord, Firebird::ThrowStatusWrapper,
-        (FB_VARCHAR(4096 * 4), relation_name)
-    );
 
     FB_MESSAGE(OutputRecord, Firebird::ThrowStatusWrapper,
         (FB_SMALLINT, releation_id)
@@ -105,7 +101,7 @@ namespace FBExport
         const std::string& tableIncludeFilter,
         bool singleWorker = true)
     {
-        OutputRecord output(status, master);
+        OutputRecord output(status, fb_master);
         output.clear();
 
         Firebird::AutoRelease<Firebird::IStatement> stmt;
@@ -367,7 +363,7 @@ namespace FBExport
                 }
                 if (auto pos = arg.find("--sql-dialect="); pos == 0) {
                     std::string sql_dialect = arg.substr(14);
-                    m_sqlDialect = std::stoi(sql_dialect);
+                    m_sqlDialect = static_cast<unsigned short>(std::stoi(sql_dialect));
                     if (m_sqlDialect != 1 && m_sqlDialect != 3) {
                         std::cerr << "Error: sql_dialect must be 1 or 3" << std::endl;
                         exit(-1);
@@ -391,7 +387,7 @@ namespace FBExport
                     break;
                 case OptState::SEPARATOR:
                     m_separator.assign(arg);
-                    if (m_separator.length() > 1) {
+                    if (m_separator.length() == 1) {
                         std::cerr << "Error: invalid separator" << std::endl;
                         exit(-1);
                     }
@@ -416,7 +412,7 @@ namespace FBExport
                     m_charset.assign(arg);
                     break;
                 case OptState::DIALECT:
-                    m_sqlDialect = std::stoi(arg);
+                    m_sqlDialect = static_cast<unsigned short>(std::stoi(arg));
                     if (m_sqlDialect != 1 && m_sqlDialect != 3) {
                         std::cerr << "Error: sql_dialect must be 1 or 3" << std::endl;
                         exit(-1);
@@ -435,13 +431,13 @@ namespace FBExport
 
     int ExportApp::exportData()
     {
-        auto fbUtil = master->getUtilInterface();
+        auto fbUtil = fb_master->getUtilInterface();
 
         try
         {
             auto start = std::chrono::steady_clock::now();
 
-            Firebird::ThrowStatusWrapper status(master->getStatus());
+            Firebird::ThrowStatusWrapper status(fb_master->getStatus());
 
             Firebird::AutoDispose<Firebird::IXpbBuilder> dpbBuilder(fbUtil->getXpbBuilder(&status, Firebird::IXpbBuilder::DPB, nullptr, 0));
             dpbBuilder->insertString(&status, isc_dpb_user_name, m_username.c_str());
@@ -451,7 +447,7 @@ namespace FBExport
             const auto dpb = dpbBuilder->getBuffer(&status);
             const auto dbpLength = dpbBuilder->getBufferLength(&status);
 
-            Firebird::AutoRelease<Firebird::IProvider> provider(master->getDispatcher());
+            Firebird::AutoRelease<Firebird::IProvider> provider(fb_master->getDispatcher());
 
             Firebird::AutoRelease<Firebird::IAttachment> att(
                 provider->attachDatabase(
@@ -477,12 +473,14 @@ namespace FBExport
 
             if (m_parallel == 1) {
                 auto start_p = std::chrono::steady_clock::now();
-                FBExport::CSVExportTable csvExport(att, tra, master);
+                FBExport::CSVExportTable csvExport(att, tra, fb_master);
                 for (const auto& tableDesc : tables) {
                     csvExport.prepare(&status, tableDesc.relation_name, m_sqlDialect, false);
                     const std::string fileName = tableDesc.relation_name + ".csv";
                     csv::CSVFile csv(m_outputDir / fileName);
-                    csvExport.printHeader(&status, csv);
+                    if (m_printHeader) {
+                        csvExport.printHeader(&status, csv);
+                    }
                     csvExport.printData(&status, csv);
                 }
                 auto end_p = std::chrono::steady_clock::now();
@@ -525,22 +523,26 @@ namespace FBExport
                     );
 
                     std::thread t([att = std::move(workerAtt), tra = std::move(workerTra), this, &tables, &counter, &exceptionPointer]() mutable {
-                        Firebird::ThrowStatusWrapper status(master->getStatus());
+                        Firebird::ThrowStatusWrapper status(fb_master->getStatus());
 
                         try {
-                            FBExport::CSVExportTable csvExport(att, tra, master);
+                            FBExport::CSVExportTable csvExport(att, tra, fb_master);
                             while (true) {
                                 size_t localCounter = counter++;
                                 if (localCounter >= tables.size())
                                     break;
                                 const auto& tableDesc = tables[localCounter];
-                                csvExport.prepare(&status, tableDesc.relation_name, m_sqlDialect, tableDesc.pp_cnt > 1);
+                                // If the number of PP pages is greater than 1, then it is a large table.To extract data from it, 
+                                // a SQL query is built with a division into RDB$DB_KEY ranges.
+                                bool withDbKeyFilter = tableDesc.pp_cnt > 1;
+                                csvExport.prepare(&status, tableDesc.relation_name, m_sqlDialect, withDbKeyFilter);
                                 std::string fileName = tableDesc.relation_name + ".csv";
+                                // If this is not the first part of the page, then the file is temporary; the extension ".partN" is added to it.
                                 if (tableDesc.page_sequence > 0) {
                                     fileName += ".part_" + std::to_string(tableDesc.page_sequence);
                                 }
                                 csv::CSVFile csv(m_outputDir / fileName);
-                                if (tableDesc.page_sequence == 0) {
+                                if (tableDesc.page_sequence == 0 && m_printHeader) {
                                     csvExport.printHeader(&status, csv);
                                 }
                                 csvExport.printData(&status, csv, tableDesc.page_sequence);
@@ -563,20 +565,23 @@ namespace FBExport
                 }
 
                 // export in main threads
-                FBExport::CSVExportTable csvExport(att, tra, master);
-                Firebird::ThrowStatusWrapper status(master->getStatus());
+                FBExport::CSVExportTable csvExport(att, tra, fb_master);
                 while (true) {
                     size_t localCounter = counter++;
                     if (localCounter >= tables.size())
                         break;
                     const auto& tableDesc = tables[localCounter];
-                    csvExport.prepare(&status, tableDesc.relation_name, m_sqlDialect, tableDesc.pp_cnt > 1);
+                    // If the number of PP pages is greater than 1, then it is a large table.To extract data from it, 
+                    // a SQL query is built with a division into RDB$DB_KEY ranges.
+                    bool withDbKeyFilter = tableDesc.pp_cnt > 1;
+                    csvExport.prepare(&status, tableDesc.relation_name, m_sqlDialect, withDbKeyFilter);
+                    // If this is not the first part of the page, then the file is temporary; the extension ".partN" is added to it.
                     std::string fileName = tableDesc.relation_name + ".csv";
                     if (tableDesc.page_sequence > 0) {
                         fileName += ".part_" + std::to_string(tableDesc.page_sequence);
                     }
                     csv::CSVFile csv(m_outputDir / fileName);
-                    if (tableDesc.page_sequence == 0) {
+                    if (tableDesc.page_sequence == 0 && m_printHeader) {
                         csvExport.printHeader(&status, csv);
                     }
                     csvExport.printData(&status, csv, tableDesc.page_sequence);
@@ -595,7 +600,7 @@ namespace FBExport
                     << std::chrono::duration_cast<std::chrono::milliseconds>(end_p - start_p).count()
                     << " ms" << std::endl;
 
-                // merge part csv files into main csv file
+                // For each large table, the CSV files are merged into one (main) file.
                 for (size_t i = 0; i < tables.size(); i++) {
                     const auto& tableDesc = tables[i];
                     if (tableDesc.pp_cnt > 1) {
