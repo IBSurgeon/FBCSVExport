@@ -23,9 +23,10 @@ Usage CSVExport [out_dir] <options>
 General options:
     -h [ --help ]                        Show help
     -o [ --output-dir ] path             Output directory
-    -H [ --print-header ]                Print CSV header, default true
+    -H [ --print-header ]                Print CSV header, default false
     -f [ --table-filter ]                Table filter
-    -S [ --column-separator ]            Column separator, default ","
+    -S [ --column-separator ]            Column separator, default ",". Supported: ",", ";" and "t".
+                                         Where "t" is '\t'. 
     -P [ --parallel ]                    Parallel threads, default 1
 
 Database options:
@@ -334,6 +335,19 @@ namespace FBExport
                         std::cerr << "Error: invalid separator" << std::endl;
                         exit(-1);
                     }
+                    else {
+                        switch (m_separator[0]) {
+                        case ',':
+                        case ';':
+                            break;
+                        case 't':
+                            m_separator = "\t";
+                            break;
+                        default:
+                            std::cerr << "Error: invalid separator" << std::endl;
+                            exit(-1);
+                        }
+                    }
                     continue;
                 }
                 if (auto pos = arg.find("--parallel="); pos == 0) {
@@ -387,9 +401,22 @@ namespace FBExport
                     break;
                 case OptState::SEPARATOR:
                     m_separator.assign(arg);
-                    if (m_separator.length() == 1) {
+                    if (m_separator.length() > 1) {
                         std::cerr << "Error: invalid separator" << std::endl;
                         exit(-1);
+                    }
+                    else {
+                        switch (m_separator[0]) {
+                        case ',':
+                        case ';':
+                            break;
+                        case 't':
+                            m_separator = "\t";
+                            break;
+                        default:
+                            std::cerr << "Error: invalid separator" << std::endl;
+                            exit(-1);
+                        }
                     }
                     break;
                 case OptState::PARALLEL:
