@@ -212,6 +212,8 @@ namespace FBExport
 
         int exportData();
 
+        void exportByTableDesc(Firebird::ThrowStatusWrapper* status, FBExport::CSVExportTable& csvExport, const TableDesc& tableDesc);
+
         void parseArgs(int argc, const char** argv);
     };
 
@@ -456,6 +458,24 @@ namespace FBExport
         }
     }
 
+    void ExportApp::exportByTableDesc(Firebird::ThrowStatusWrapper* status, FBExport::CSVExportTable& csvExport, const TableDesc& tableDesc)
+    {
+        // If the number of PP pages is greater than 1, then it is a large table.To extract data from it, 
+        // a SQL query is built with a division into RDB$DB_KEY ranges.
+        bool withDbKeyFilter = tableDesc.pp_cnt > 1;
+        csvExport.prepare(status, tableDesc.relation_name, m_sqlDialect, withDbKeyFilter);
+        std::string fileName = tableDesc.relation_name + ".csv";
+        // If this is not the first part of the page, then the file is temporary; the extension ".partN" is added to it.
+        if (tableDesc.page_sequence > 0) {
+            fileName += ".part_" + std::to_string(tableDesc.page_sequence);
+        }
+        csv::CSVFile csv(m_outputDir / fileName);
+        if (tableDesc.page_sequence == 0 && m_printHeader) {
+            csvExport.printHeader(status, csv);
+        }
+        csvExport.printData(status, csv, tableDesc.page_sequence);
+    }
+
     int ExportApp::exportData()
     {
         auto fbUtil = fb_master->getUtilInterface();
@@ -559,20 +579,7 @@ namespace FBExport
                                 if (localCounter >= tables.size())
                                     break;
                                 const auto& tableDesc = tables[localCounter];
-                                // If the number of PP pages is greater than 1, then it is a large table.To extract data from it, 
-                                // a SQL query is built with a division into RDB$DB_KEY ranges.
-                                bool withDbKeyFilter = tableDesc.pp_cnt > 1;
-                                csvExport.prepare(&status, tableDesc.relation_name, m_sqlDialect, withDbKeyFilter);
-                                std::string fileName = tableDesc.relation_name + ".csv";
-                                // If this is not the first part of the page, then the file is temporary; the extension ".partN" is added to it.
-                                if (tableDesc.page_sequence > 0) {
-                                    fileName += ".part_" + std::to_string(tableDesc.page_sequence);
-                                }
-                                csv::CSVFile csv(m_outputDir / fileName);
-                                if (tableDesc.page_sequence == 0 && m_printHeader) {
-                                    csvExport.printHeader(&status, csv);
-                                }
-                                csvExport.printData(&status, csv, tableDesc.page_sequence);
+                                exportByTableDesc(&status, csvExport, tableDesc);
                             }
                             if (tra) {
                                 tra->commit(&status);
@@ -598,20 +605,7 @@ namespace FBExport
                     if (localCounter >= tables.size())
                         break;
                     const auto& tableDesc = tables[localCounter];
-                    // If the number of PP pages is greater than 1, then it is a large table.To extract data from it, 
-                    // a SQL query is built with a division into RDB$DB_KEY ranges.
-                    bool withDbKeyFilter = tableDesc.pp_cnt > 1;
-                    csvExport.prepare(&status, tableDesc.relation_name, m_sqlDialect, withDbKeyFilter);
-                    // If this is not the first part of the page, then the file is temporary; the extension ".partN" is added to it.
-                    std::string fileName = tableDesc.relation_name + ".csv";
-                    if (tableDesc.page_sequence > 0) {
-                        fileName += ".part_" + std::to_string(tableDesc.page_sequence);
-                    }
-                    csv::CSVFile csv(m_outputDir / fileName);
-                    if (tableDesc.page_sequence == 0 && m_printHeader) {
-                        csvExport.printHeader(&status, csv);
-                    }
-                    csvExport.printData(&status, csv, tableDesc.page_sequence);
+                    exportByTableDesc(&status, csvExport, tableDesc);
                 }
 
 

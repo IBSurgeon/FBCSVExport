@@ -134,7 +134,7 @@ namespace FBExport
 		m_tra->addRef();
 	}
 
-	void CSVExportTable::prepare(Firebird::ThrowStatusWrapper* status, const std::string& tableName, const unsigned int sqlDialect, bool withDbkeyFilter)
+	void CSVExportTable::prepare(Firebird::ThrowStatusWrapper* status, const std::string& tableName, unsigned int sqlDialect, bool withDbkeyFilter)
 	{
 		// for same table not need repeat prepare
 		if (m_tableName == tableName) {

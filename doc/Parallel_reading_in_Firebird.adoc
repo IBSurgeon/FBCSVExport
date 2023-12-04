@@ -79,10 +79,10 @@ SET TRANSACTION SNAPSHOT AT NUMBER snapshot_number
    `isc_transaction_info` или `ITransaction.getInfo` с тегом `fb_info_tra_snapshot_number`;
   - стартуем другие транзакции, передавая туда номер снимка с помощью тега `isc_tpb_at_snapshot_number`.
   
-`FBCSVExport` так же как и `gbak` использует второй подход. Эти подходы можно комбинировать, например получив номер моментального снимка запросом, но передавая этот номер
+`CSVExport` так же как и `gbak` использует второй подход. Эти подходы можно комбинировать, например получив номер моментального снимка запросом, но передавая этот номер
 для старта других транзакций с помощью API или наоборот.
 
-В `FBCSVExport` получение номера моментального снимка реализовано следующим образом:
+В `CSVExport` получение номера моментального снимка реализовано следующим образом:
 
 [source,cpp]
 ----
@@ -253,3 +253,209 @@ WHERE RDB$DB_KEY >= MAKE_DBKEY(:rel_id, 0, 0, :loPP)
 Теперь, когда есть представление о том как работает `gbak` можно перейти к описанию реализации утилиты `CSVExport`.
 
 == Реализация утилиты `CSVExport`
+
+Утилита `CSVExport` предназначена для экспорта данных из таблиц БД Firebird в формат CSV.
+
+Каждая таблица экспортируется в файл с именем `<tablename>.csv`. В обычном (однопоточном режиме)
+данные из таблиц экспортируется последовательно в алфавитном порядке имени таблиц.
+
+В параллельном режиме, таблицы экспортируются параллельно, каждая таблица в отдельном потоке. Если
+таблица очень большая, то она разбивается на части, и каждая часть экспортируется в отдельном потоке.
+Для каждой части большой таблицы создаётся отдельный файл с именем `<tablename>.csv.partN`, где N - номер части.
+Когда все части большой таблицы экспортированы, файлы частей сливаются в общий файл с именем `<tablename>.csv`.
+
+Для того, чтобы указать какие именно таблицы будут экспортированы используется регулярное выражение.
+Возможен экспорт только обычных таблиц (системные таблицы, GTT, представления, внешние таблицы не поддерживаются).
+Регулярные выражения должны быть в SQL синтаксисе, то есть такие, которые используются в предикате `SIMILAR TO`.
+
+Для отбора списка экспортируемых таблиц, а также списка их PP в многопоточном режиме я использую следующий запрос:
+
+[source,sql]
+----
+SELECT
+    R.RDB$RELATION_ID AS RELATION_ID,
+    TRIM(R.RDB$RELATION_NAME) AS RELATION_NAME,
+    P.RDB$PAGE_SEQUENCE AS PAGE_SEQUENCE,
+    COUNT(P.RDB$PAGE_SEQUENCE) OVER(PARTITION BY R.RDB$RELATION_NAME) AS PP_CNT
+FROM RDB$RELATIONS R
+JOIN RDB$PAGES P ON P.RDB$RELATION_ID = R.RDB$RELATION_ID
+WHERE R.RDB$SYSTEM_FLAG = 0 AND
+      R.RDB$RELATION_TYPE = 0 AND
+      P.RDB$PAGE_TYPE = 4 AND
+      TRIM(R.RDB$RELATION_NAME) SIMILAR TO CAST(? AS VARCHAR(8191))
+ORDER BY R.RDB$RELATION_NAME, P.RDB$PAGE_SEQUENCE
+----
+
+В однопоточном режиме этот запрос можно упростить до
+
+[source,sql]
+----
+SELECT
+    R.RDB$RELATION_ID AS RELATION_ID,
+    TRIM(R.RDB$RELATION_NAME) AS RELATION_NAME,
+    0 AS PAGE_SEQUENCE,
+    1 AS PP_CNT
+FROM RDB$RELATIONS R
+WHERE R.RDB$SYSTEM_FLAG = 0 AND
+      R.RDB$RELATION_TYPE = 0 AND
+      TRIM(R.RDB$RELATION_NAME) SIMILAR TO CAST(? AS VARCHAR(8191))
+ORDER BY R.RDB$RELATION_NAME
+----
+
+В однопоточном режиме значения полей `PAGE_SEQUENCE` и `PP_CNT` не используются, они добавлены в запрос с целью унификации выходных сообщений.
+
+Результат этого запроса складывается в вектор структур:
+
+[source,cpp]
+----
+struct TableDesc
+{
+    TableDesc() = default;
+    TableDesc(const OutputRecord& rec)
+        : releation_id(rec->releation_id)
+        , relation_name(rec->relation_name.str, rec->relation_name.length)
+        , page_sequence(rec->page_sequence)
+        , pp_cnt(rec->pp_cnt)
+    {}
+
+    short releation_id;
+    std::string relation_name;
+    int32_t page_sequence;
+    int64_t pp_cnt;
+};
+----
+
+Этот вектор заполняется при помощи функции объявленной как:
+
+[source,cpp]
+----
+std::vector<TableDesc> getTablesDesc(
+    Firebird::ThrowStatusWrapper* status,
+    Firebird::IAttachment* att,
+    Firebird::ITransaction* tra,
+    unsigned int sqlDialect,
+    const std::string& tableIncludeFilter,
+    bool singleWorker = true);
+----
+
+Последний параметр `singleWorker` переключает режим заполнения `std::vector<TableDesc>`, если
+`singleWorker = true`, то используется запрос для однопоточного режима, если `singleWorker = false`, то
+используется более дорогой и сложный запрос для многопоточного режима. Саму реализацию я не буду приводить,
+она довольно проста, и вы можете посмотреть её в исходном коде проекта.
+
+Для экспорта таблицы в формат CSV разработан класс `CSVExportTable`, который содержит следующие методы:
+
+[source,cpp]
+----
+    void prepare(Firebird::ThrowStatusWrapper* status, const std::string& tableName, 
+                 unsigned int sqlDialect, bool withDbkeyFilter = false);
+
+    void printHeader(Firebird::ThrowStatusWrapper* status, csv::CSVFile& csv);
+
+    void printData(Firebird::ThrowStatusWrapper* status, csv::CSVFile& csv, int64_t ppNum = 0);
+----
+
+Метод `prepare` предназначен для построения и подготовки запроса, который используется для экспорта таблицы
+в формат CSV. Внутренний запрос строится по разному в зависимости от параметра `withDbkeyFilter`.
+Если `withDbkeyFilter = true`, то запрос строится с фильтрацией по диапазону `RDB$DB_KEY`:
+
+[source,sql]
+----
+SELECT *
+FROM tableName
+WHERE RDB$DB_KEY >= MAKE_DBKEY('tableName', 0, 0, ?)
+  AND RDB$DB_KEY < MAKE_DBKEY('tableName', 0, 0, ?)
+----
+
+в противном случае используется упрощённый запрос:
+
+[source,sql]
+----
+SELECT *
+FROM tableName
+----
+
+Значение параметра `withDbkeyFilter` устанавливается в `true`, если используется многопоточный режим, и таблица является большой.
+Считаем таблицу большой, если `pp_cnt > 1`.
+
+Метод `printHeader` предназначен для печати заголовка CSV файла (имён столбцов таблицы).
+
+Метод `printData` печатает данные таблицы в CSV файл c PP страницы с номером `ppNum`, если запрос был подготовлен с использованием фильтра
+по диапазону `RDB$DB_KEY`, и всех данных таблицы в противном случае.
+
+Теперь посмотрим фрагмент кода для работы в однопоточном режиме
+
+[source,cpp]
+----
+...
+
+// Открываем главное соединение
+Firebird::AutoRelease<Firebird::IAttachment> att(
+    provider->attachDatabase(
+        &status,
+        m_database.c_str(),
+        dbpLength,
+        dpb
+    )
+);
+
+// Стартуем главную транзакцию в режиме изолированности SNAPSHOT
+Firebird::AutoDispose<Firebird::IXpbBuilder> tpbBuilder(fbUtil->getXpbBuilder(&status, Firebird::IXpbBuilder::TPB, nullptr, 0));
+tpbBuilder->insertTag(&status, isc_tpb_concurrency);
+
+Firebird::AutoRelease<Firebird::ITransaction> tra(
+    att->startTransaction(
+        &status,
+        tpbBuilder->getBufferLength(&status),
+        tpbBuilder->getBuffer(&status)
+    )
+);
+// Получаем список таблиц по регулярному выражению в m_filter.
+// m_parallel задаёт количество параллельных потоков, когда она равна 1,
+// то используется упрощённый запрос для получения списка таблиц,
+// в противном случае, для каждой таблицы формируется список PP и их количество.
+auto tables = getTablesDesc(&status, att, tra, m_sqlDialect, m_filter, m_parallel == 1);
+
+if (m_parallel == 1) {
+    FBExport::CSVExportTable csvExport(att, tra, fb_master);
+    for (const auto& tableDesc : tables) {
+        // здесь нет смысла использовать фильтр по диапазону RDB$DB_KEY
+        csvExport.prepare(&status, tableDesc.relation_name, m_sqlDialect, false);
+        const std::string fileName = tableDesc.relation_name + ".csv";
+        csv::CSVFile csv(m_outputDir / fileName);
+        if (m_printHeader) {
+            csvExport.printHeader(&status, csv);
+        }
+        csvExport.printData(&status, csv);
+    }
+}
+----
+
+Здесь всё довольно просто и не требует дополнительных пояснений, поэтому перейдем к многопоточной части.
+
+Для того, чтобы экспорт происходил в многопоточном режиме, необходимо создать дополнительные `m_parallel - 1` рабочих потоков.
+Почему количество дополнительных потоков на 1 меньше? Да потому что основной поток, тоже будет заниматься экспортом данных и он
+является равноправным с дополнительными потоками. Вынесем общую часть основного и дополнительного потока в отдельную функцию:
+
+[source,cpp]
+----
+void ExportApp::exportByTableDesc(Firebird::ThrowStatusWrapper* status, FBExport::CSVExportTable& csvExport, const TableDesc& tableDesc)
+{
+    // Если в tableDesc pp_cnt > 1, то она описывает только часть таблицы, и необходимо построить
+    // запрос с использованием фильтра по диапазону RDB$DB_KEY. 
+    bool withDbKeyFilter = tableDesc.pp_cnt > 1;
+    csvExport.prepare(status, tableDesc.relation_name, m_sqlDialect, withDbKeyFilter);
+    std::string fileName = tableDesc.relation_name + ".csv";
+    // Если это не первая часть таблицы, то записываем эту часть в файл <tableName>.csv.part<N>, где
+    // N - номер PP. Позднее части таблицы будут соединены в единый файл <tableName>.csv
+    if (tableDesc.page_sequence > 0) {
+        fileName += ".part_" + std::to_string(tableDesc.page_sequence);
+    }
+    csv::CSVFile csv(m_outputDir / fileName);
+    // Заголовок CSV файла нужно печатать только в первую часть таблицы.
+    if (tableDesc.page_sequence == 0 && m_printHeader) {
+        csvExport.printHeader(status, csv);
+    }
+    csvExport.printData(status, csv, tableDesc.page_sequence);
+}
+----

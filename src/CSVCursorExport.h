@@ -32,7 +32,7 @@ namespace FBExport
             Firebird::IMaster* master
         );
 
-        void prepare(Firebird::ThrowStatusWrapper* status, const std::string& tableName, const unsigned int sqlDialect, bool withDbkeyFilter = false);
+        void prepare(Firebird::ThrowStatusWrapper* status, const std::string& tableName, unsigned int sqlDialect, bool withDbkeyFilter = false);
 
         void printHeader(Firebird::ThrowStatusWrapper* status, csv::CSVFile& csv);
 

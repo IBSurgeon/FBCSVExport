@@ -16,6 +16,9 @@
     <Filter Include="CMAKE">
       <UniqueIdentifier>{7072ffa3-9b3d-4930-86c6-db16920573e0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="doc">
+      <UniqueIdentifier>{46bd5ea7-b162-44e5-9dbb-4e681b24702d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\AppMain.cpp">
@@ -55,5 +58,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\README.md" />
+    <None Include="..\..\doc\Parallel_reading_in_Firebird.adoc">
+      <Filter>doc</Filter>
+    </None>
   </ItemGroup>
 </Project>
