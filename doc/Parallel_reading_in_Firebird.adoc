@@ -1,7 +1,7 @@
 [[parallel-reading]]
 = Параллельное чтение данных в СУБД Firebird
 Симонов Денис, Влад Хорсун
-v1.0 от 03.12.2023
+v1.0 от 05.12.2023
 :doctype: book
 :sectnums!:
 :sectanchors:
@@ -72,7 +72,7 @@ SELECT RDB$GET_CONTEXT('SYSTEM', 'SNAPSHOT_NUMBER') FROM RDB$DATABASE
 SET TRANSACTION SNAPSHOT AT NUMBER snapshot_number
 ----
 +
-   где `snapshot_number` номер моментального снимка.
+где `snapshot_number` номер моментального снимка.
 
 2. Через API.
   - получить номер моментального снимка из главной транзакции, то есть транзакции с которой работает основной рабочий поток, используя функцию
@@ -84,7 +84,7 @@ SET TRANSACTION SNAPSHOT AT NUMBER snapshot_number
 
 В `CSVExport` получение номера моментального снимка реализовано следующим образом:
 
-[source,cpp]
+[source%autofit,cpp]
 ----
 ISC_INT64 getSnapshotNumber(Firebird::ThrowStatusWrapper* status, Firebird::ITransaction* tra)
 {
@@ -119,7 +119,7 @@ ISC_INT64 getSnapshotNumber(Firebird::ThrowStatusWrapper* status, Firebird::ITra
 
 А старт транзакции с полученным номером моментального снимка так:
 
-[source,sql]
+[source%autofit,sql]
 ----
 Firebird::AutoDispose<Firebird::IXpbBuilder> tpbWorkerBuilder(fbUtil->getXpbBuilder(&status, Firebird::IXpbBuilder::TPB, nullptr, 0));
 tpbWorkerBuilder->insertTag(&status, isc_tpb_concurrency);
@@ -215,12 +215,12 @@ Firebird::AutoRelease<Firebird::ITransaction> workerTra(
 а главное быстро, можно вычислить из таблицы `RDB$PAGES`:
 
 [source,sql]
-====
+----
 SELECT RDB$PAGE_SEQUENCE 
 FROM RDB$PAGES
 WHERE RDB$RELATION_ID = ? AND RDB$PAGE_TYPE = 4
 ORDER BY RDB$PAGE_SEQUENCE DESC ROWS 1
-====
+----
 
 Далее можно было бы просто поделить количество PP на количество обработчиков, и выдать каждому свой
 кусок. Но, как я писал выше, нет никакой гарантии, что такие "большие" куски будут означать
@@ -240,13 +240,13 @@ ORDER BY RDB$PAGE_SEQUENCE DESC ROWS 1
 встроенная функция `MAKE_DBKEY()`. С её помощью можно получить `RDB$DB_KEY` (физический номер записи) для первой записи на указанной PP. 
 И с помощью таких `RDB$DB_KEY` и осуществляется отбор нужных записей:
 
-[source,sql]
-====
+[source%autofit,sql]
+----
 SELECT * 
 FROM relation
 WHERE RDB$DB_KEY >= MAKE_DBKEY(:rel_id, 0, 0, :loPP)
     AND RDB$DB_KEY < MAKE_DBKEY(:rel_id, 0, 0, :hiPP)
-====
+----
 
 Например, если задать loPP = 0 и hiPP = 1, то будут прочитаны все записи с PP = 0, и только из неё.
 
@@ -270,7 +270,7 @@ WHERE RDB$DB_KEY >= MAKE_DBKEY(:rel_id, 0, 0, :loPP)
 
 Для отбора списка экспортируемых таблиц, а также списка их PP в многопоточном режиме я использую следующий запрос:
 
-[source,sql]
+[source%autofit,sql]
 ----
 SELECT
     R.RDB$RELATION_ID AS RELATION_ID,
@@ -288,7 +288,7 @@ ORDER BY R.RDB$RELATION_NAME, P.RDB$PAGE_SEQUENCE
 
 В однопоточном режиме этот запрос можно упростить до
 
-[source,sql]
+[source%autofit,sql]
 ----
 SELECT
     R.RDB$RELATION_ID AS RELATION_ID,
@@ -345,7 +345,7 @@ std::vector<TableDesc> getTablesDesc(
 
 Для экспорта таблицы в формат CSV разработан класс `CSVExportTable`, который содержит следующие методы:
 
-[source,cpp]
+[source%autofit,cpp]
 ----
     void prepare(Firebird::ThrowStatusWrapper* status, const std::string& tableName, 
                  unsigned int sqlDialect, bool withDbkeyFilter = false);
@@ -359,7 +359,7 @@ std::vector<TableDesc> getTablesDesc(
 в формат CSV. Внутренний запрос строится по разному в зависимости от параметра `withDbkeyFilter`.
 Если `withDbkeyFilter = true`, то запрос строится с фильтрацией по диапазону `RDB$DB_KEY`:
 
-[source,sql]
+[source%autofit,sql]
 ----
 SELECT *
 FROM tableName
@@ -385,7 +385,7 @@ FROM tableName
 
 Теперь посмотрим фрагмент кода для работы в однопоточном режиме
 
-[source,cpp]
+[source%autofit,cpp]
 ----
 ...
 
@@ -437,7 +437,7 @@ if (m_parallel == 1) {
 Почему количество дополнительных потоков на 1 меньше? Да потому что основной поток, тоже будет заниматься экспортом данных и он
 является равноправным с дополнительными потоками. Вынесем общую часть основного и дополнительного потока в отдельную функцию:
 
-[source,cpp]
+[source%autofit,cpp]
 ----
 void ExportApp::exportByTableDesc(Firebird::ThrowStatusWrapper* status, FBExport::CSVExportTable& csvExport, const TableDesc& tableDesc)
 {
@@ -463,7 +463,7 @@ void ExportApp::exportByTableDesc(Firebird::ThrowStatusWrapper* status, FBExport
 Описание таблиц или её частей расположено в общем векторе со структурами `TableDesc`. Из этого вектора каждый рабочий поток берёт таблицу или очередную часть
 Для предотвращения data races необходимо синхронизация доступа к общему ресурсу. Но сам `std::vector<TableDesc>` не меняется, поэтому можно синхронизировать только общую переменную, которая является индексом в этом векторе. Это легко сделать используя в качестве такой переменной `std::atomic<size_t>`.
 
-[source,cpp]
+[source%autofit,cpp]
 ----
 if (m_parallel == 1) {
     ...
@@ -553,7 +553,7 @@ else {
         if (localCounter >= tables.size())
             break;
         // если таблицы или их части закончились выходим
-         // из бесконечного цикла          
+        // из бесконечного цикла
         const auto& tableDesc = tables[localCounter];
         exportByTableDesc(&status, csvExport, tableDesc);
     }
@@ -570,7 +570,7 @@ else {
 
 Осталось соединить файлы, которые были созданы для частей таблиц в единой файл для каждой из этих таблиц.
 
-[source,cpp]
+[source%autofit,cpp]
 ----
 for (size_t i = 0; i < tables.size(); i++) {
     const auto& tableDesc = tables[i];
@@ -611,7 +611,7 @@ for (size_t i = 0; i < tables.size(); i++) {
 
 Результаты:
 
-[source,bash]
+[source%autofit,bash]
 ----
 CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 \
   -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./single
@@ -649,7 +649,7 @@ Elapsed time in milliseconds: 21137 ms
 
 Результаты:
 
-[source,bash]
+[source%autofit,bash]
 ----
 [denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 \
   -d inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./single

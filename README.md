@@ -2,7 +2,9 @@
 
 Данная утилита создана как пример для статьи "Многопоточный экспорт в Firebird".
 
-Компиляция на Linux
+Бинарный файл для Windows можно скачать по ссылке [CSVExport.exe](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/CSVExport.exe)
+
+Для операционных систем Linux, вы можете собрать утилиту из исходных файлов:
 
 ```
 git clone https://github.com/IBSurgeon/FBCSVExport.git
@@ -88,20 +90,27 @@ Database options:
 Результаты:
 
 ```
-CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./single
+CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 \
+  -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./
+
 Elapsed time in milliseconds parallel_part: 35894 ms
 Elapsed time in milliseconds: 36317 ms
 
-CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./multi
+CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 \
+  -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./multi
+
 Elapsed time in milliseconds parallel_part: 19259 ms
 Elapsed time in milliseconds: 20760 ms
 
-CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./multi
+CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 \
+  -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./multi
+
 Elapsed time in milliseconds parallel_part: 19600 ms
 Elapsed time in milliseconds: 21137 ms
 ```
 
-В данном случае, параллельное выполнение экспорта в 4 потоках, дало ускорение в 1.8 раза. Почему не в 3-4?
+Из результата тестирования видно, что при использовании двух потоков, ускорении составило 1.8 раза, что является хорошим результатом.
+Но параллельное выполнение экспорта в 4 потоках, тоже дало ускорение в 1.8 раза. Почему не в 3-4?
 Дело в том, что сервер Firebird и утилита экспорта запущены на одном и том же компьютере, у которого всего 4 ядра.
 Таким образом сам сервер Firebird, использует 4 потока для чтения таблицы и утилита `CSVExport`, тоже использует 4 потока.
 Очевидно, что в таком случае довольно затруднительно получить ускорение более чем в 2 раза.
@@ -118,23 +127,27 @@ Elapsed time in milliseconds: 21137 ms
 Результаты:
 
 ```
-[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 -d i
-net://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./single
+[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 \
+  -d inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./single
+
 Elapsed time in milliseconds parallel_part: 57547 ms
 Elapsed time in milliseconds: 57595 ms
 
-[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 -d i
-net://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./multi
+[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 \
+  -d inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./multi
+
 Elapsed time in milliseconds parallel_part: 17755 ms
 Elapsed time in milliseconds: 18148 ms
 
-[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=6 -d i
-net://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./multi
+[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=6 \
+  -d inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./multi
+
 Elapsed time in milliseconds parallel_part: 13243 ms
 Elapsed time in milliseconds: 13624 ms
 
-[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=12 -d
-inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./multi
+[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=12 \
+  -d inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./multi
+
 Elapsed time in milliseconds parallel_part: 12712 ms
 Elapsed time in milliseconds: 13140 ms
 ```
@@ -143,3 +156,4 @@ Elapsed time in milliseconds: 13140 ms
 При этом удалось получить ускорение в 5 раз, что говорит о достаточно хорошей масштабируемости. Хотелось бы отметить, что для проверки
 на Linux и Windows использовались идентичные базы данных почти одинакового размера. В одном потоке, на Windows экспорт прошёл почти в 2 раза
 быстрее, из-за более быстрой дисковой подсистемы. Всё таки NVME диски намного быстрее SAS дисков объединённых в RAID.
+
