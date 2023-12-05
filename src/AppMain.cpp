@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <thread>
 #include <atomic>
+#include <mutex>
 #include <exception>
 #include <stdexcept>
 #include <chrono>
@@ -543,6 +544,7 @@ namespace FBExport
                 auto snapshotNumber = getSnapshotNumber(&status, tra);
                 std::exception_ptr exceptionPointer = nullptr;
 
+                std::mutex m;
                 std::atomic<size_t> counter = 0;
 
                 std::vector<std::thread> thread_pool;
@@ -569,7 +571,8 @@ namespace FBExport
                         )
                     );
 
-                    std::thread t([att = std::move(workerAtt), tra = std::move(workerTra), this, &tables, &counter, &exceptionPointer]() mutable {
+                    std::thread t([att = std::move(workerAtt), tra = std::move(workerTra), 
+                                   this, &m, &tables, &counter, &exceptionPointer]() mutable {
                         Firebird::ThrowStatusWrapper status(fb_master->getStatus());
 
                         try {
@@ -592,6 +595,7 @@ namespace FBExport
                             }
                         }
                         catch (...) {
+                            std::unique_lock<std::mutex> lock(m);
                             exceptionPointer = std::current_exception();
                         }
                         });

@@ -459,3 +459,232 @@ void ExportApp::exportByTableDesc(Firebird::ThrowStatusWrapper* status, FBExport
     csvExport.printData(status, csv, tableDesc.page_sequence);
 }
 ----
+
+Описание таблиц или её частей расположено в общем векторе со структурами `TableDesc`. Из этого вектора каждый рабочий поток берёт таблицу или очередную часть
+Для предотвращения data races необходимо синхронизация доступа к общему ресурсу. Но сам `std::vector<TableDesc>` не меняется, поэтому можно синхронизировать только общую переменную, которая является индексом в этом векторе. Это легко сделать используя в качестве такой переменной `std::atomic<size_t>`.
+
+[source,cpp]
+----
+if (m_parallel == 1) {
+    ...
+} 
+else {
+    // Определяем количество дополнительных рабочих потоков
+    const auto workerCount = m_parallel - 1;
+
+    // Получаем номер моментального снимка из основной транзакции
+    auto snapshotNumber = getSnapshotNumber(&status, tra);
+    // переменная для сохранения исключения внутри потока
+    std::exception_ptr exceptionPointer = nullptr;
+    std::mutex m;
+    // атомарный счётчик
+    // является индексом очередной таблицы или её части
+    std::atomic<size_t> counter = 0;
+    // пул рабочих потоков 
+    std::vector<std::thread> thread_pool;
+    thread_pool.reserve(workerCount);
+    for (int i = 0; i < workerCount; i++) {
+        // для каждого потока создаём своё соединение
+        Firebird::AutoRelease<Firebird::IAttachment> workerAtt(
+            provider->attachDatabase(
+                &status,
+                m_database.c_str(),
+                dbpLength,
+                dpb
+            )
+        );
+        // и свою транзакцию в которую передаём номер моментального снимка
+        // для создания общего снимка
+        Firebird::AutoDispose<Firebird::IXpbBuilder> tpbWorkerBuilder(fbUtil->getXpbBuilder(&status, Firebird::IXpbBuilder::TPB, nullptr, 0));
+        tpbWorkerBuilder->insertTag(&status, isc_tpb_concurrency);
+        tpbWorkerBuilder->insertBigInt(&status, isc_tpb_at_snapshot_number, snapshotNumber);
+
+        Firebird::AutoRelease<Firebird::ITransaction> workerTra(
+            workerAtt->startTransaction(
+                &status,
+                tpbWorkerBuilder->getBufferLength(&status),
+                tpbWorkerBuilder->getBuffer(&status)
+            )
+        );
+        // создаём поток
+        std::thread t([att = std::move(workerAtt), tra = std::move(workerTra), this, 
+                       &m, &tables, &counter, &exceptionPointer]() mutable {
+
+            Firebird::ThrowStatusWrapper status(fb_master->getStatus());
+            try {
+                FBExport::CSVExportTable csvExport(att, tra, fb_master);
+                while (true) {
+                    // увеличиваем атомарный счётчик
+                    size_t localCounter = counter++;
+                    // если таблицы или их части закончились выходим
+                    // из бесконечного цикла и завершаем поток
+                    if (localCounter >= tables.size())
+                        break;
+                    // получаем описание таблицы или её части    
+                    const auto& tableDesc = tables[localCounter];
+                    // и делаем экспорт
+                    exportByTableDesc(&status, csvExport, tableDesc);
+                }
+                if (tra) {
+                    tra->commit(&status);
+                    tra.release();
+                }
+
+                if (att) {
+                    att->detach(&status);
+                    att.release();
+                }
+            }
+            catch (...) {
+                // если возникло исключение, то сохраняем его для
+                // последующего выброса в основном потоке
+                std::unique_lock<std::mutex> lock(m);
+                exceptionPointer = std::current_exception();
+            }
+        });
+        thread_pool.push_back(std::move(t));
+    }
+
+    // экспорт в основном потоке
+    FBExport::CSVExportTable csvExport(att, tra, fb_master);
+    while (true) {
+        // увеличиваем атомарный счётчик
+        size_t localCounter = counter++;
+        if (localCounter >= tables.size())
+            break;
+        // если таблицы или их части закончились выходим
+         // из бесконечного цикла          
+        const auto& tableDesc = tables[localCounter];
+        exportByTableDesc(&status, csvExport, tableDesc);
+    }
+    // ждём завершения рабочих потоков
+    for (auto& th : thread_pool) {
+        th.join();
+    }
+    // если в рабочих потоках было исключение выбрасываем его повторно
+    if (exceptionPointer) {
+        std::rethrow_exception(exceptionPointer);
+    }
+    ...
+----
+
+Осталось соединить файлы, которые были созданы для частей таблиц в единой файл для каждой из этих таблиц.
+
+[source,cpp]
+----
+for (size_t i = 0; i < tables.size(); i++) {
+    const auto& tableDesc = tables[i];
+    // если количество PP больше 1,
+    // то таблица большая и для неё было несколько частей
+    if (tableDesc.pp_cnt > 1) {
+        // основной файл для таблицы
+        std::string fileName = tableDesc.relation_name + ".csv";
+        std::ofstream ofile(m_outputDir / fileName, std::ios::out | std::ios::app);
+        i++;
+        for (int64_t j = 1; j < tableDesc.pp_cnt; j++, i++) {
+            // файлы частей таблицы
+            std::string partFileName = fileName + ".part_" + std::to_string(j);
+            auto partFilePath = m_outputDir / partFileName;
+            std::ifstream ifile(partFilePath, std::ios::in);
+            ofile << ifile.rdbuf();
+            ifile.close();
+            fs::remove(partFilePath);
+        }
+        ofile.close();
+    }
+}
+----
+
+Ну вот и всё пришло время померить производительность нашей утилиты в однопоточном и многопоточном режиме.
+
+== Бенчмарк утилиты `CSVExport`
+
+Для начала посмотрим на результаты сравнения многопоточного и однопоточного режима экспорта на моём домашнем не самом современном компьютере.
+
+=== Windows
+
+* Операционная система: Windows 10 x64.
+* Процессор: Intel Core i3 8100, 4 ядра, 4 потока.
+* Память: 16 Гб
+* Дисковая подсистема: NVME SSD (база данных), SATA SSD (папка для размещения CSV файлов).
+* Firebird 4.0.4 x64
+
+Результаты:
+
+[source,bash]
+----
+CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 \
+  -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./single
+
+Elapsed time in milliseconds parallel_part: 35894 ms
+Elapsed time in milliseconds: 36317 ms
+
+CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 \
+  -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./multi
+
+Elapsed time in milliseconds parallel_part: 19259 ms
+Elapsed time in milliseconds: 20760 ms
+
+CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 \
+  -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./multi
+
+Elapsed time in milliseconds parallel_part: 19600 ms
+Elapsed time in milliseconds: 21137 ms
+----
+
+Из результата тестирования видно, что при использовании двух потоков, ускорении составило 1.8 раза, что является хорошим результатом.
+Но параллельное выполнение экспорта в 4 потоках, тоже дало ускорение в 1.8 раза. Почему не в 3-4?
+Дело в том, что сервер Firebird и утилита экспорта запущены на одном и том же компьютере, у которого всего 4 ядра.
+Таким образом сам сервер Firebird, использует 4 потока для чтения таблицы и утилита `CSVExport`, тоже использует 4 потока.
+Очевидно, что в таком случае довольно затруднительно получить ускорение более чем в 2 раза.
+Поэтому попробуем на другом железе, где количество ядер существенно больше.
+
+=== Linux
+
+* Операционная система: CentOS 8.
+* Процессор: 2 процессора Intel Xeon E5-2603 v4, всего 12 ядер, 12 потоков.
+* Память: 32 Гб
+* Дисковая подсистема: SAS HDD (RAID 10)
+* Firebird 4.0.4 x64
+
+Результаты:
+
+[source,bash]
+----
+[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 \
+  -d inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./single
+
+Elapsed time in milliseconds parallel_part: 57547 ms
+Elapsed time in milliseconds: 57595 ms
+
+[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 \
+  -d inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./multi
+
+Elapsed time in milliseconds parallel_part: 17755 ms
+Elapsed time in milliseconds: 18148 ms
+
+[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=6 \
+  -d inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./multi
+
+Elapsed time in milliseconds parallel_part: 13243 ms
+Elapsed time in milliseconds: 13624 ms
+
+[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=12 \
+  -d inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./multi
+
+Elapsed time in milliseconds parallel_part: 12712 ms
+Elapsed time in milliseconds: 13140 ms
+----
+
+В данном случае оптимальном числом потоков для экспорта является 6 (6 потоков для Firebird и 6 потоков для утилиты `CSVExport`).
+При этом удалось получить ускорение в 5 раз, что говорит о достаточно хорошей масштабируемости. Хотелось бы отметить, что для проверки
+на Linux и Windows использовались идентичные базы данных почти одинакового размера. В одном потоке, на Windows экспорт прошёл почти в 2 раза
+быстрее, из-за более быстрой дисковой подсистемы. Всё таки NVME диски намного быстрее SAS дисков объединённых в RAID.
+
+== Заключение
+
+В этой статье мы научились эффективно использовать читать данные из таблиц СУБД Firebird используя параллелизм, и что самое согласовано читать их.
+Кроме того, был показан пример как можно использовать некоторые возможности СУБД Firebird для организации такого тения в своих утилитах.
+
+Огромное спасибо Владиславу Хорсуну, автору многопоточного `gbak` в Firebird 5.0 и HQbird, за подробное объяснение принципов работы 
+параллельного резервного копирования. Без него этой статьи не было бы.
