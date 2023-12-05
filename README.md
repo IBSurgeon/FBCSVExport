@@ -1,8 +1,12 @@
 # Пример многопоточного экспорта Firebird
 
-Данная утилита создана как пример для статьи "Многопоточный экспорт в Firebird".
+Данная утилита создана как пример для статьи "Параллельное чтение данных в СУБД Firebird":
+
+* [Параллельное чтение данных в СУБД Firebird.pdf](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird.pdf)
+* [Параллельное чтение данных в СУБД Firebird.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird.zip)
 
 Бинарный файл для Windows можно скачать по ссылке [CSVExport.exe](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/CSVExport.exe)
+
 
 Для операционных систем Linux, вы можете собрать утилиту из исходных файлов:
 
