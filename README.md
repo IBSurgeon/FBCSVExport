@@ -80,7 +80,7 @@ Database options:
 ### Windows
 
 * Операционная система: Windows 10 x64.
-* Процессор: Intel Core i3, 4 ядра, 4 потока.
+* Процессор: Intel Core i3 8100, 4 ядра, 4 потока.
 * Память: 16 Гб
 * Дисковая подсистема: NVME SSD (база данных), SATA SSD (папка для размещения CSV файлов).
 * Firebird 4.0.4 x64
@@ -89,15 +89,19 @@ Database options:
 
 ```
 CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./single
-Elapsed time in milliseconds parallel_part: 35790 ms
-Elapsed time in milliseconds: 36066 ms
+Elapsed time in milliseconds parallel_part: 35894 ms
+Elapsed time in milliseconds: 36317 ms
 
 CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./multi
-Elapsed time in milliseconds parallel_part: 19457 ms
-Elapsed time in milliseconds: 20927 ms
+Elapsed time in milliseconds parallel_part: 19259 ms
+Elapsed time in milliseconds: 20760 ms
+
+CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./multi
+Elapsed time in milliseconds parallel_part: 19600 ms
+Elapsed time in milliseconds: 21137 ms
 ```
 
-В данном случае, параллельное выполнение экспорта в 4 потоках, дало ускорение в 1.5 раза. Почему не в 3-4?
+В данном случае, параллельное выполнение экспорта в 4 потоках, дало ускорение в 1.8 раза. Почему не в 3-4?
 Дело в том, что сервер Firebird и утилита экспорта запущены на одном и том же компьютере, у которого всего 4 ядра.
 Таким образом сам сервер Firebird, использует 4 потока для чтения таблицы и утилита `CSVExport`, тоже использует 4 потока.
 Очевидно, что в таком случае довольно затруднительно получить ускорение более чем в 2 раза.
@@ -106,7 +110,7 @@ Elapsed time in milliseconds: 20927 ms
 ### Linux
 
 * Операционная система: CentOS 8.
-* Процессор: 2 процессора Inter Xeon E5-2603 v4, всего 12 ядер, 12 потоков.
+* Процессор: 2 процессора Intel Xeon E5-2603 v4, всего 12 ядер, 12 потоков.
 * Память: 32 Гб
 * Дисковая подсистема: SAS HDD (RAID 10)
 * Firebird 4.0.4 x64
