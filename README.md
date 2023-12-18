@@ -69,7 +69,7 @@ Description of parameters:
 * `-h` or `--help` -- help output;
 * `-o` or `--output-dit` -- specifies the directory in which CSV files with data from exported tables will be placed;
 * `-H` or `--print-header`. If this switch is specified, then the first line in the CSV files will be the names of the fields of the exported table;
-* `-f` or `--table-filter` -- задаёт регулярное выражение, по которому выбираются таблицы для экспорта;
+* `-f` or `--table-filter` -- specifies a regular expression used to select tables for export;
 * `-S` or `--column-separator` -- column value separator in CSV. The default is comma ",".
   The following delimiters are supported: comma ",", semicolon ";" or the letter "t".
   Here the letter "t" encodes a tab, that is, the `\t` character;
