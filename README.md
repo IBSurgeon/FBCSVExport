@@ -1,14 +1,14 @@
-# Пример многопоточного экспорта Firebird
+# Firebird multi-threaded export example
 
-Данная утилита создана как пример для статьи "Параллельное чтение данных в СУБД Firebird":
+This utility was created as an example for the article "Parallel reading of data in the Firebird DBMS":
 
-* [Параллельное чтение данных в СУБД Firebird.pdf](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird.pdf)
-* [Параллельное чтение данных в СУБД Firebird.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird.zip)
+* [Parallel reading of data in the Firebird DBMS.pdf](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird.pdf)
+* [Parallel reading of data in the Firebird DBMS.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird.zip)
 
-Бинарный файл для Windows можно скачать по ссылке [CSVExport.exe](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/CSVExport.exe)
+The binary file for Windows can be downloaded from the link [CSVExport.exe](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/CSVExport.exe)
 
 
-Для операционных систем Linux, вы можете собрать утилиту из исходных файлов:
+For Linux operating systems, you can build the utility from the source files:
 
 ```
 git clone https://github.com/IBSurgeon/FBCSVExport.git
@@ -18,31 +18,32 @@ cmake ../projects/CSVExport
 make
 ```
 
-## Описание утилиты CSVExport
+## Description of the CSVExport utility
 
-Утилита `CSVExport` предназначена для экспорта данных из таблиц БД Firebird в формат CSV.
+The `CSVExport` utility is designed to export data from Firebird database tables to CSV format.
 
-Каждая таблица экспортируется в файл с именем `<tablename>.csv`. В обычном (однопоточном режиме)
-данные из таблиц экспортируется последовательно в алфавитном порядке имени таблиц.
+Each table is exported to a file named `<tablename>.csv`. In normal (single-threaded) mode, 
+data from tables is exported sequentially in alphabetical order of table names.
 
-В параллельном режиме, таблицы экспортируются параллельно, каждая таблица в отдельном потоке. Если
-таблица очень большая, то она разбивается на части, и каждая часть экспортируется в отдельном потоке.
-Для каждой части большой таблицы создаётся отдельный файл с именем `<tablename>.csv.partN`, где N - номер части.
-Когда все части большой таблицы экспортированы, файлы частей сливаются в общий файл с именем `<tablename>.csv`.
+In parallel mode, tables are exported in parallel, each table in a separate thread. 
+If the table is very large, then it is split into parts, and each part is exported in a separate stream. 
+For each part of a large table, a separate file is created with the name `<tablename>.csv.partN`, 
+where N is the part number. When all parts of a large table are exported, the part files are merged 
+into a common file called `<tablename>.csv`.
 
-Для того, чтобы указать какие именно таблицы будут экспортированы используется регулярное выражение.
-Возможен экспорт только обычных таблиц (системные таблицы, GTT, представления, внешние таблицы не поддерживаются).
-Регулярные выражения должны быть в SQL синтаксисе, то есть такие, которые используются в предикате `SIMILAR TO`.
+A regular expression is used to specify which tables will be exported. Only regular tables can be 
+exported (system tables, GTT, views, external tables are not supported). Regular expressions must be in SQL syntax, 
+that is, those that are used in the `SIMILAR TO` predicate.
 
-Далее описаны переключатели командной строки утилиты `CSVExport`.
+The following describes the command line switches of the `CSVExport` utility.
 
-Для получения справки по параметрам командной строки наберите:
+For help with command line options, type:
 
 ```
 CSVExport -h
 ```
 
-В результате будет выведена следующая справка:
+As a result, the following help will be displayed:
 
 ```
 Usage CSVExport [out_dir] <options>
@@ -63,35 +64,35 @@ Database options:
     -s [ --sql-dialect ] dialect         SQL dialect, default 3
 ```
 
-Описание параметров:
+Description of parameters:
 
-* `-h` или `--help` -- вывод справки;
-* `-o` или `--output-dit` -- задаёт директорию в которую будут помещены CSV файлы с данными экспортированных таблиц;
-* `-H` или `--print-header`. Если указан данный переключатель, то первой строкой в CSV файлах будут имена полей экспортированной таблицы;
-* `-f` или `--table-filter` -- задаёт регулярное выражение, по которому выбираются таблицы для экспорта;
-* `-S` или `--column-separator` -- разделитель значений столбцов в CSV. По умолчанию запятая ",".
-  Поддерживаются следующие разделители: запятая ",", точка с запятой ";" или буква "t".
-  Здесь буква t кодирует табуляцию, то есть символ `\t`;
-* `-P` или `--parallel` -- задаёт количество потоков, которое будет использовано при экспорте;
-* `-d` или `--database` -- строка соединения с базой данных;
-* `-u` или `--username` -- имя пользователя для соединения с базой данных;
-* `-p` или `--password` -- пароль для соединения с базой данных;
-* `-c` или `--charset` -- набор символов соединения с базой данных. По умолчанию UTF-8;
-* `-s` или `--sql-dialect` -- SQL диалект. По умолчанию 3. Допустимые значения 1 и 3.
+* `-h` or `--help` -- help output;
+* `-o` or `--output-dit` -- specifies the directory in which CSV files with data from exported tables will be placed;
+* `-H` or `--print-header`. If this switch is specified, then the first line in the CSV files will be the names of the fields of the exported table;
+* `-f` or `--table-filter` -- задаёт регулярное выражение, по которому выбираются таблицы для экспорта;
+* `-S` or `--column-separator` -- column value separator in CSV. The default is comma ",".
+  The following delimiters are supported: comma ",", semicolon ";" or the letter "t".
+  Here the letter "t" encodes a tab, that is, the `\t` character;
+* `-P` or `--parallel` -- sets the number of threads that will be used during export;
+* `-d` or `--database` -- database connection string;
+* `-u` or `--username` -- username for connecting to the database;
+* `-p` or `--password` -- password for connecting to the database;
+* `-c` or `--charset` -- database connection character set. Default is UTF-8;
+* `-s` or `--sql-dialect` -- SQL dialect. Default is 3. Valid values are 1 and 3.
 
-## Результаты тестирования
+## Performance Test Results
 
-Для начала посмотрим на результаты сравнения многопоточного и однопоточного режима экспорта на моём домашнем не самом современном компьютере.
+First, let's look at the results of comparing multi-threaded and single-threaded export modes on my home computer, which is not the most modern.
 
 ### Windows
 
-* Операционная система: Windows 10 x64.
-* Процессор: Intel Core i3 8100, 4 ядра, 4 потока.
-* Память: 16 Гб
-* Дисковая подсистема: NVME SSD (база данных), SATA SSD (папка для размещения CSV файлов).
+* Operating system: Windows 10 x64.
+* CPU: Intel Core i3 8100, 4 cores, 4 threads.
+* RAM: 16 Гб
+* Disk subsystem: NVME SSD (database), SATA SSD (directory for placing CSV files).
 * Firebird 4.0.4 x64
 
-Результаты:
+Results:
 
 ```
 CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 \
@@ -113,22 +114,22 @@ Elapsed time in milliseconds parallel_part: 19600 ms
 Elapsed time in milliseconds: 21137 ms
 ```
 
-Из результата тестирования видно, что при использовании двух потоков, ускорении составило 1.8 раза, что является хорошим результатом.
-Но параллельное выполнение экспорта в 4 потоках, тоже дало ускорение в 1.8 раза. Почему не в 3-4?
-Дело в том, что сервер Firebird и утилита экспорта запущены на одном и том же компьютере, у которого всего 4 ядра.
-Таким образом сам сервер Firebird, использует 4 потока для чтения таблицы и утилита `CSVExport`, тоже использует 4 потока.
-Очевидно, что в таком случае довольно затруднительно получить ускорение более чем в 2 раза.
-Поэтому попробуем на другом железе, где количество ядер существенно больше.
+From the testing result it is clear that when using two threads, the acceleration was 1.8 times, which is a good result. 
+But parallel execution of export in 4 threads also gave a 1.8 times speedup. Why not at 3-4? 
+The fact is that the Firebird server and the export utility are running on the same computer, which has only 4 cores. 
+Thus, the Firebird server itself uses 4 threads to read the table, and the `CSVExport` utility also uses 4 threads. 
+Obviously, in this case it is quite difficult to achieve an acceleration of more than 2 times. Therefore, we will 
+try on another hardware, where the number of cores is significantly larger.
 
 ### Linux
 
-* Операционная система: CentOS 8.
-* Процессор: 2 процессора Intel Xeon E5-2603 v4, всего 12 ядер, 12 потоков.
-* Память: 32 Гб
-* Дисковая подсистема: SAS HDD (RAID 10)
+* Operating system: CentOS 8.
+* CPU: 2 CPU Intel Xeon E5-2603 v4, total 12 cores, 12 threads.
+* RAM: 32 Гб
+* Disk subsystem: SAS HDD (RAID 10)
 * Firebird 4.0.4 x64
 
-Результаты:
+Results:
 
 ```
 [denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 \
@@ -156,8 +157,8 @@ Elapsed time in milliseconds parallel_part: 12712 ms
 Elapsed time in milliseconds: 13140 ms
 ```
 
-В данном случае оптимальном числом потоков для экспорта является 6 (6 потоков для Firebird и 6 потоков для утилиты `CSVExport`).
-При этом удалось получить ускорение в 5 раз, что говорит о достаточно хорошей масштабируемости. Хотелось бы отметить, что для проверки
-на Linux и Windows использовались идентичные базы данных почти одинакового размера. В одном потоке, на Windows экспорт прошёл почти в 2 раза
-быстрее, из-за более быстрой дисковой подсистемы. Всё таки NVME диски намного быстрее SAS дисков объединённых в RAID.
+In this case, the optimal number of threads for export is 6 (6 threads for Firebird and 6 threads for the `CSVExport` utility). 
+At the same time, we managed to achieve a 5-fold acceleration, which indicates fairly good scalability.
+I would like to note that identical databases of almost the same size were used for testing on Linux and Windows. In one stream, on Windows, 
+the export was almost 2 times faster, due to the faster disk subsystem. Still, NVME drives are much faster than SAS drives combined in RAID.
 

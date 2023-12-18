@@ -176,6 +176,7 @@
   <ItemGroup>
     <None Include="..\..\doc\Parallel_reading_in_Firebird.adoc" />
     <None Include="..\..\README.md" />
+    <None Include="..\..\README_RU.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

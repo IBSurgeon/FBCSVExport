@@ -61,5 +61,6 @@
     <None Include="..\..\doc\Parallel_reading_in_Firebird.adoc">
       <Filter>doc</Filter>
     </None>
+    <None Include="..\..\README_RU.md" />
   </ItemGroup>
 </Project>
