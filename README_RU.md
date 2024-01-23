@@ -2,8 +2,15 @@
 
 Данная утилита создана как пример для статьи "Параллельное чтение данных в СУБД Firebird":
 
-* [Параллельное чтение данных в СУБД Firebird.pdf](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird.pdf)
-* [Параллельное чтение данных в СУБД Firebird.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird.zip)
+На русском языке:
+
+* [Parallel_reading_in_Firebird_ru.pdf](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_ru.pdf)
+* [Parallel_reading_in_Firebird_ru.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_ru_html.zip)
+
+На английском языке:
+
+* [Parallel_reading_in_Firebird_en.pdf](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_en.pdf)
+* [Parallel_reading_in_Firebird_ru.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_en_html.zip)
 
 Бинарный файл для Windows можно скачать по ссылке [CSVExport.exe](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/CSVExport.exe)
 

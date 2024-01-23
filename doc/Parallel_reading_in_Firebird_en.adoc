@@ -1,0 +1,624 @@
+[[parallel-reading]]
+= Parallel Reading Of Data In Firebird
+D.Simonov, V.Horsun
+version 1.0.5 from 05.12.2023
+:doctype: book
+:sectnums!:
+:sectanchors:
+:experimental:
+:lang: ru
+:imagesdir: images
+ifdef::backend-pdf[]
+:pdf-fontsdir: theme/fonts
+:pdf-themesdir: theme/firebird-pdf
+:pdf-theme: firebird
+:source-highlighter: coderay
+endif::[]
+ifdef::backend-html5[]
+:stylesdir: theme/firebird-html
+:stylesheet: firebird.css
+:source-highlighter: highlight.js
+endif::[]
+
+[dedication%notitle]
+--
+This material is sponsored and created with the sponsorship and support of IBSurgeon https://www.ib-aid.com[www.ib-aid.com], vendor of HQbird (advanced distribution of Firebird) and supplier of performance optimization, migration and technical support services for Firebird.
+
+The material is licensed under Public Documentation License https://www.firebirdsql.org/file/documentation/html/en/licenses/pdl/public-documentation-license.html[]
+--
+
+[preface]
+== Preface
+
+Firebird 5.0 introduced the ability to use parallelism when creating a backup using the `gbak` utility, among others parallel functions. Initially, this function appeared in HQbird 2.5, then in HQbird 3.0 and 4.0, and after it was tested by real customers, it was ported to Firebird 5.0.
+
+In this article we will consider the functions that are used when creating parallel backups inside the `gbak` utility, We will also show how they can be used in your applications for parallel reading of data.
+
+It is important to note that here we are not talking about parallel scanning of tables inside the Firebird engine when executing SQL queries, but reading data inside your application parallel streams.
+
+== Sample tool FBCSVExport
+
+To demonstrate parallel reading of data from the Firebird DBMS, an example utility was written that exports data from one or more tables to CSV format.
+
+Its description and its open source code are here: https://github.com/IBSurgeon/FBCSVExport.git[]
+
+As you can see in the description of the utility and from the article below, through parallel processing it is possible to export data and perform other parallel operations 2-10x times faster than in 1 thread (depending on the hardware).
+
+For any questions, please contact support@ib-aid.com.
+
+== Parallel reading
+
+Let’s think about how to read data from several tables in parallel. As you know, Firebird allows you to execute queries in parallel only if each query is executed in a separate connection.
+
+Let’s create a pool of worker threads. Main application thread is also a worker thread, so the number of additional worker threads should be N - 1, where N is the total number of parallel workers. Each worker thread will run its own connection and transaction.
+
+The first problem: how to ensure consistency of the data read?
+
+=== Consistent data reading
+
+Since each worker thread uses its own connection and its own transaction, the problem of inconsistent reads arises - if the table is simulteneously changed by other users, then the data read may be inconsistent. In single-threaded mode, `gbak` uses a transaction with SNAPSHOT isolation mode, which makes it possible to read consistent information at the start of the SNAPSHOT transaction. But here we have multiple transactions and it is necessary that they see the same “snapshot” in order for them to read the same immutable data.
+
+The mechanism for creating a shared snapshot for different transactions with the SNAPSHOT isolation mode was introduced in Firebird 4.0 (originally in HQBird 2.5, but in Firebird 4.0/HQBird 4.0 it is simpler and more efficient). There are two ways to create a shared snapshot:
+
+1. With SQL
+  - get the snapshot number from the main transaction (which is started in the main worker thread).
++  
+[source,sql]
+----
+SELECT RDB$GET_CONTEXT('SYSTEM', 'SNAPSHOT_NUMBER') FROM RDB$DATABASE
+----
+  
+  - start other transactions with the following SQL:
++
+[source,sql]
+----
+SET TRANSACTION SNAPSHOT AT NUMBER snapshot_number
+----
++
+where `snapshot_number` is the number retrieved by the previous query.
+
+2. With API
+  - get the snapshot number from the main transaction (which is started in the main worker thread) with the function
+   `isc_transaction_info` or `ITransaction.getInfo` with tag `fb_info_tra_snapshot_number`;
+  - start other transactions with tag `isc_tpb_at_snapshot_number` with a snapshot number obtained.
+  
+The sample tool `FBCSVExport`, as well as `gbak`, uses the second approach. These approaches can be mixed - for example, get snapshot number with SQL, and use the obtained snapshot number to start other transactions with API, or vice versa.
+
+In `FBCSVExport` we are getting a snapshot number with the following code:
+
+[source%autofit,cpp]
+----
+ISC_INT64 getSnapshotNumber(Firebird::ThrowStatusWrapper* status, Firebird::ITransaction* tra)
+{
+    ISC_INT64 ret = 0;
+    unsigned char in_buf[] = { fb_info_tra_snapshot_number, isc_info_end };
+    unsigned char out_buf[16] = { 0 };
+
+    tra->getInfo(status, sizeof(in_buf), in_buf, sizeof(out_buf), out_buf);
+
+    unsigned char* p = out_buf, * e = out_buf + sizeof(out_buf);
+    while (p < e)
+    {
+        short len = 0;
+        switch (*p++)
+        {
+        case isc_info_error:
+        case isc_info_end:
+            p = e;
+            break;
+
+        case fb_info_tra_snapshot_number:
+            len = static_cast<short>(isc_vax_integer(reinterpret_cast<char*>(p), 2));
+            p += 2;
+            ret = isc_portable_integer(p, len);
+            p += len;
+            break;
+        }
+    }
+    return ret;
+}
+----  
+
+To start transaction with the snapshot number we use the following code:
+
+[source%autofit,sql]
+----
+Firebird::AutoDispose<Firebird::IXpbBuilder> tpbWorkerBuilder(fbUtil->getXpbBuilder(&status, Firebird::IXpbBuilder::TPB, nullptr, 0));
+tpbWorkerBuilder->insertTag(&status, isc_tpb_concurrency);
+tpbWorkerBuilder->insertBigInt(&status, isc_tpb_at_snapshot_number, snapshotNumber);
+
+Firebird::AutoRelease<Firebird::ITransaction> workerTra(
+    workerAtt->startTransaction(
+        &status,
+        tpbWorkerBuilder->getBufferLength(&status),
+        tpbWorkerBuilder->getBuffer(&status)
+    )
+);
+----
+
+Now the data read from different connections will be consistent, so we can distribute the load across work threads.
+
+How exactly to distribute the load between worker threads? In case of complete export of all tables or a backup copy, the simplest option will be one worker thread per table. But with this approach we have the following problem: if there are many small tables in a database, and one large table, or even just one table and it is huge, we will not see the improvement. In this case, some thread will get a large table, and the remaining threads will be idle. To prevent this from happening, it is necessary to process a large table in parts.
+
+[NOTE]
+====
+The material below is devoted to the full reading of tables, if you want to organize parallel reading from some query (or view), it will require slightly different approach, which depends on the actual data.
+====
+
+=== Split large table into the parts
+
+Let’s say we have only one large table that we want to read in its entirety and as quickly as possible. It is proposed to divide it into several parts and read each part from its own stream independently. Each thread must have its own connection to the database.
+
+In this case, the following questions arise:
+
+- How many processing parts should the table be divided into?
+- What is the best way to divide the table in terms of data access?
+
+Let’s answer these questions in order.
+
+==== How many processing parts should the table be divided into?
+
+Let’s assume the ideal scenario - the server and client are dedicated to Firebird, that is, all the CPUs are completely at our disposal. Then it is recommended:
+
+а) Use as the maximum number of parallel parts the doubled number of CPU cores on the server. Why 2x cores? We know for sure that we will have delays associated with IO, so we can allow some extra use of CPU. However, this number should be considered as a initial setting, practically it depends on the data.
+
+б) Take into account the number of cores on the client: if there are many more of them on the server (usual situation), then it might make sense to further limit the number of parts of the partition, so as not to overload the client (it won’t be able to process any more anyway, and switching costs flows are not going anywhere). It will be possible to decide more precisely by monitoring the client’s CPU load and server - if it is 100% on the client, but noticeably less on the server, then it makes sense to reduce number of parts.
+
+в) if the client and server are the same host, then see (a).
+
+If the client and/or server are busy with something else, you may have to reduce the number of parts. This may also be affected by the ability of the disks on the server to process many IO requests simultaneously (monitor the queue size and response time).
+
+==== What is the best way to divide the table in terms of data access?
+
+To implemenet an effective parallel processing, it is important to ensure an even distribution of jobs across handlers and minimize their mutual synchronization. Moreover, you need to remember that synchronization of handlers can occur both on the server side and on the client’s side. For example, several handlers should not use the same connection to the database. A less obvious example: it’s bad if different handlers read records from the same database pages. For example, when two handlers read even and odd records - it is not effective. The synchronization on the client may occur during the distribution of tasks, during the processing of received data (allocating memory for results), and so on.
+
+One of the problems with "fair" partitioning is that the client does not know how records are distributed across pages (and across index keys), how many records or data pages are there (for large tables it be will too long to count the number of records in advance).
+
+Let’s see how `gbak` solves this problem.
+
+For `gbak``, a unit of work is a set of records from data pages (DPs) belonging to the same pointer page (PP). On the one hand, this is quite large number of records to keep the handler busy without having to frequently ask for a new piece of data (synchronization). On the other hand, even if such recordsets do not have exactly the same size, it will allow relatively evenly load of workers. That is, it is quite possible that one worker will read N records from one PP, and the other is M records, and M will be quite different from N. This approach is not ideal, but it is quite simple to implement and is usually quite effective, at least on large scales (with tens or hundreds (or more) PP).
+
+How to get the number of PP (Pointer Pages) for a given table? It’s pretty easy and, most important, quickly to calculate it from the `RDB$PAGES` table:
+
+[source,sql]
+----
+SELECT RDB$PAGE_SEQUENCE 
+FROM RDB$PAGES
+WHERE RDB$RELATION_ID = ? AND RDB$PAGE_TYPE = 4
+ORDER BY RDB$PAGE_SEQUENCE DESC ROWS 1
+----
+
+Next, we could simply divide the number of PPs by the number of workers, and give each worker their own piece. It is fine for the scenario when parallel processing is done by the developer who knows the data distribution. But, for more common scenario, there is no guarantee that such “large” pieces will mean the same amount of work. We are not interested to see the situation when 15 workers finished their work and stand idle, and the 16th one reads its 10M records for a long time.
+
+That’s why `gbak` does it differently. There is a work coordinator who issues each processor 1 PP at a time. The coordinator knows how many PPs there are in total and how many have already been issued for work. When the worker completes reading of its records, it contacts the coordinator for a new PP number. It continues until the PP runs out (or there are active workers). Of course, such interaction of workers with the coordinator requires synchronization. Experience shows that the amount of work given one PP, allows you not to synchronize too often. This approach allows to practically evenly load all workers (and therefore CPU cores) with work, regardless of the actual number of records, belonging to each PP.
+
+How does the handler read records from its PP? To do this, starting with Firebird 4.0 (first appeared in HQBird 2.5) there is a built-in function `MAKE_DBKEY()`. With its help, you can get the `RDB$DB_KEY` (physical record number) for the first record on the specified PP.
+
+And with the help of these `RDB$DB_KEY` the necessary records are selected:
+
+[source%autofit,sql]
+----
+SELECT * 
+FROM relation
+WHERE RDB$DB_KEY >= MAKE_DBKEY(:rel_id, 0, 0, :loPP)
+    AND RDB$DB_KEY < MAKE_DBKEY(:rel_id, 0, 0, :hiPP)
+----
+
+For example, if you set loPP = 0 and hiPP = 1, then all records with PP = 0 will be read, and only from it.
+
+Now that you have an idea of how `gbak` works, you can move on to a description of the implementation of the `FBCSVExport` utility.
+
+== Implementation of the `FBCSVExport` utility
+
+The `FBCSVExport` utility is designed to export data from Firebird database tables to CSV format.
+
+Each table is exported to a file named `.csv`. In normal (single-threaded mode) data from tables is exported sequentially in alphabetical order of table names.
+
+In parallel mode, tables are exported in parallel, each table in a separate thread. If the table is very large, it is split into parts, and each part is exported in a separate stream. For each part of a large table, a separate file is created with the name `.csv.partN`, where N is the part number.
+
+When all parts of a large table are exported, the part files are merged into a file called `.csv`.
+
+A regular expression is used to specify which tables will be exported. Only regular tables can be exported (system tables, GTT, views, external tables are not supported). Regular expressions must be in SQL syntax, that is, those that are used in the `SIMILAR TO` predicate.
+
+To select a list of exported tables, as well as a list of their PPs in multi-threaded mode, we use the following query:
+
+[source%autofit,sql]
+----
+SELECT
+    R.RDB$RELATION_ID AS RELATION_ID,
+    TRIM(R.RDB$RELATION_NAME) AS RELATION_NAME,
+    P.RDB$PAGE_SEQUENCE AS PAGE_SEQUENCE,
+    COUNT(P.RDB$PAGE_SEQUENCE) OVER(PARTITION BY R.RDB$RELATION_NAME) AS PP_CNT
+FROM RDB$RELATIONS R
+JOIN RDB$PAGES P ON P.RDB$RELATION_ID = R.RDB$RELATION_ID
+WHERE R.RDB$SYSTEM_FLAG = 0 AND
+      R.RDB$RELATION_TYPE = 0 AND
+      P.RDB$PAGE_TYPE = 4 AND
+      TRIM(R.RDB$RELATION_NAME) SIMILAR TO CAST(? AS VARCHAR(8191))
+ORDER BY R.RDB$RELATION_NAME, P.RDB$PAGE_SEQUENCE
+----
+
+In single-threaded mode, this query can be simplified to
+
+[source%autofit,sql]
+----
+SELECT
+    R.RDB$RELATION_ID AS RELATION_ID,
+    TRIM(R.RDB$RELATION_NAME) AS RELATION_NAME,
+    0 AS PAGE_SEQUENCE,
+    1 AS PP_CNT
+FROM RDB$RELATIONS R
+WHERE R.RDB$SYSTEM_FLAG = 0 AND
+      R.RDB$RELATION_TYPE = 0 AND
+      TRIM(R.RDB$RELATION_NAME) SIMILAR TO CAST(? AS VARCHAR(8191))
+ORDER BY R.RDB$RELATION_NAME
+----
+
+In single-threaded mode, the values of the `PAGE_SEQUENCE` and `PP_CNT` fields are not used; they are added to the request to unify the output messages.
+
+The result of this query is formed into a vector of structures:
+
+[source,cpp]
+----
+struct TableDesc
+{
+    TableDesc() = default;
+    TableDesc(const OutputRecord& rec)
+        : releation_id(rec->releation_id)
+        , relation_name(rec->relation_name.str, rec->relation_name.length)
+        , page_sequence(rec->page_sequence)
+        , pp_cnt(rec->pp_cnt)
+    {}
+
+    short releation_id;
+    std::string relation_name;
+    int32_t page_sequence;
+    int64_t pp_cnt;
+};
+----
+
+This vector is filled using a function declared as:
+
+[source,cpp]
+----
+std::vector<TableDesc> getTablesDesc(
+    Firebird::ThrowStatusWrapper* status,
+    Firebird::IAttachment* att,
+    Firebird::ITransaction* tra,
+    unsigned int sqlDialect,
+    const std::string& tableIncludeFilter,
+    bool singleWorker = true);
+----
+
+The last parameter `singleWorker` switches the filling mode of `std::vector` if `singleWorker = true`, then the request for single-threaded mode is used, if `singleWorker = false`, then a more expensive and complex query is used for multi-threaded mode. I will not give the implementation itself, it’s quite simple and you can see it in the project’s source code.
+
+To export a table to CSV format, the `CSVExportTable` class has been developed, which contains the following methods:
+
+[source%autofit,cpp]
+----
+    void prepare(Firebird::ThrowStatusWrapper* status, const std::string& tableName, 
+                 unsigned int sqlDialect, bool withDbkeyFilter = false);
+
+    void printHeader(Firebird::ThrowStatusWrapper* status, csv::CSVFile& csv);
+
+    void printData(Firebird::ThrowStatusWrapper* status, csv::CSVFile& csv, int64_t ppNum = 0);
+----
+
+The `prepare` method is intended to build and prepare a query that is used to export a table to CSV format. The inner query is constructed differently depending on the `withDbkeyFilter` parameter. If `withDbkeyFilter = true`, then the query is built with filtering by the range `RDB$DB_KEY`:
+
+[source%autofit,sql]
+----
+SELECT *
+FROM tableName
+WHERE RDB$DB_KEY >= MAKE_DBKEY('tableName', 0, 0, ?)
+  AND RDB$DB_KEY < MAKE_DBKEY('tableName', 0, 0, ?)
+----
+
+otherwise, a simplified query is used:
+
+[source,sql]
+----
+SELECT *
+FROM tableName
+----
+
+The value of the `withDbkeyFilter` parameter is set to `true` if multi-threaded mode is used and the table is large. We consider the table to be large if `pp_cnt > 1`.
+
+The `printHeader` method is designed to print the header of a CSV file (table column names).
+
+The `printData` method prints table data to a CSV file from PP page number `ppNum`, if the request was prepared using a filter by range `RDB$DB_KEY`, and all table data otherwise.
+
+Now let’s look at the code for a single-threaded mode
+
+[source%autofit,cpp]
+----
+...
+
+// Opening the main connection
+Firebird::AutoRelease<Firebird::IAttachment> att(
+    provider->attachDatabase(
+        &status,
+        m_database.c_str(),
+        dbpLength,
+        dpb
+    )
+);
+
+// Starting the main transaction in the isolation mode SNAPSHOT
+Firebird::AutoDispose<Firebird::IXpbBuilder> tpbBuilder(fbUtil->getXpbBuilder(&status, Firebird::IXpbBuilder::TPB, nullptr, 0));
+tpbBuilder->insertTag(&status, isc_tpb_concurrency);
+
+Firebird::AutoRelease<Firebird::ITransaction> tra(
+    att->startTransaction(
+        &status,
+        tpbBuilder->getBufferLength(&status),
+        tpbBuilder->getBuffer(&status)
+    )
+);
+// Get a list of tables using the regular expression in m_filter.
+// m_parallel sets the number of parallel threads when it is equal to 1,
+// then a simplified query is used to obtain a list of tables,
+// otherwise, a list of PPs and their number is generated for each table.
+auto tables = getTablesDesc(&status, att, tra, m_sqlDialect, m_filter, m_parallel == 1);
+
+if (m_parallel == 1) {
+    FBExport::CSVExportTable csvExport(att, tra, fb_master);
+    for (const auto& tableDesc : tables) {
+        // there is no point in using a range filter RDB$DB_KEY here
+        csvExport.prepare(&status, tableDesc.relation_name, m_sqlDialect, false);
+        const std::string fileName = tableDesc.relation_name + ".csv";
+        csv::CSVFile csv(m_outputDir / fileName);
+        if (m_printHeader) {
+            csvExport.printHeader(&status, csv);
+        }
+        csvExport.printData(&status, csv);
+    }
+}
+----
+
+Everything here is quite simple and does not require additional explanation, so let’s move on to the multi-threaded part.
+
+In order for the export to occur in multi-threaded mode, it is necessary to create additional `m_parallel - 1` worker threads. Why is the number of additional threads 1 less? Yes, because the main thread will also export data and it is equal with additional threads. Let’s move the common part of the main and additional flow into a separate function:
+
+[source%autofit,cpp]
+----
+void ExportApp::exportByTableDesc(Firebird::ThrowStatusWrapper* status, FBExport::CSVExportTable& csvExport, const TableDesc& tableDesc)
+{
+    // If tableDesc has pp_cnt > 1, then it describes only part of the table, and it is necessary to build
+    // query using a filter by range RDB$DB_KEY.
+    bool withDbKeyFilter = tableDesc.pp_cnt > 1;
+    csvExport.prepare(status, tableDesc.relation_name, m_sqlDialect, withDbKeyFilter);
+    std::string fileName = tableDesc.relation_name + ".csv";
+    // If this is not the first part of the table, then write this part to the file .csv.part, where
+    // N - PP number. Later the table parts will be combined into a single file .csv
+    if (tableDesc.page_sequence > 0) {
+        fileName += ".part_" + std::to_string(tableDesc.page_sequence);
+    }
+    csv::CSVFile csv(m_outputDir / fileName);
+    // The header of the CSV file should be printed only in the first part of the table.
+    if (tableDesc.page_sequence == 0 && m_printHeader) {
+        csvExport.printHeader(status, csv);
+    }
+    csvExport.printData(status, csv, tableDesc.page_sequence);
+}
+----
+
+Descriptions of tables or their parts are located in a common vector with `TableDesc` structures. From this vector, each worker thread takes a table or the next part. To prevent data races, it is necessary to synchronize access to the shared resource. But `std::vector<TableDesc>` itself does not change, so you can only synchronize the shared variable, which is the index in this vector. This can be easily done using `std::atomic<size_t>` as such a variable.
+
+[source%autofit,cpp]
+----
+if (m_parallel == 1) {
+    ...
+} 
+else {
+    // Determining the number of additional worker threads
+    const auto workerCount = m_parallel - 1;
+
+    // Getting the snapshot number from the main transaction
+    auto snapshotNumber = getSnapshotNumber(&status, tra);
+    // variable to store the exception within the thread
+    std::exception_ptr exceptionPointer = nullptr;
+    std::mutex m;
+    // atomic counter
+    // is the index of the next table or part of it
+    std::atomic<size_t> counter = 0;
+    // pool of worker threads
+    std::vector<std::thread> thread_pool;
+    thread_pool.reserve(workerCount);
+    for (int i = 0; i < workerCount; i++) {
+        // for each thread we create our own connection
+        Firebird::AutoRelease<Firebird::IAttachment> workerAtt(
+            provider->attachDatabase(
+                &status,
+                m_database.c_str(),
+                dbpLength,
+                dpb
+            )
+        );
+        // and our transaction to which we pass the snapshot number
+        // to create a shared snapshot
+        Firebird::AutoDispose<Firebird::IXpbBuilder> tpbWorkerBuilder(fbUtil->getXpbBuilder(&status, Firebird::IXpbBuilder::TPB, nullptr, 0));
+        tpbWorkerBuilder->insertTag(&status, isc_tpb_concurrency);
+        tpbWorkerBuilder->insertBigInt(&status, isc_tpb_at_snapshot_number, snapshotNumber);
+
+        Firebird::AutoRelease<Firebird::ITransaction> workerTra(
+            workerAtt->startTransaction(
+                &status,
+                tpbWorkerBuilder->getBufferLength(&status),
+                tpbWorkerBuilder->getBuffer(&status)
+            )
+        );
+        // create a thread
+        std::thread t([att = std::move(workerAtt), tra = std::move(workerTra), this, 
+                       &m, &tables, &counter, &exceptionPointer]() mutable {
+
+            Firebird::ThrowStatusWrapper status(fb_master->getStatus());
+            try {
+                FBExport::CSVExportTable csvExport(att, tra, fb_master);
+                while (true) {
+                    // increment the atomic counter
+                    size_t localCounter = counter++;
+                    // if the tables or their parts are over, exit
+                    // out of the endless loop and end the thread
+                    if (localCounter >= tables.size())
+                        break;
+                    // get a description of the table or part of it   
+                    const auto& tableDesc = tables[localCounter];
+                    // and do the export
+                    exportByTableDesc(&status, csvExport, tableDesc);
+                }
+                if (tra) {
+                    tra->commit(&status);
+                    tra.release();
+                }
+
+                if (att) {
+                    att->detach(&status);
+                    att.release();
+                }
+            }
+            catch (...) {
+                // if an exception occurs, save it for
+                // subsequent release in the main thread
+                std::unique_lock<std::mutex> lock(m);
+                exceptionPointer = std::current_exception();
+            }
+        });
+        thread_pool.push_back(std::move(t));
+    }
+
+    // export in the main thread
+    FBExport::CSVExportTable csvExport(att, tra, fb_master);
+    while (true) {
+        // increment the atomic counter
+        size_t localCounter = counter++;
+        if (localCounter >= tables.size())
+            break;
+        // if the tables or their parts are over, exit
+        // from an endless loop
+        const auto& tableDesc = tables[localCounter];
+        exportByTableDesc(&status, csvExport, tableDesc);
+    }
+    // wait for the worker threads to complete
+    for (auto& th : thread_pool) {
+        th.join();
+    }
+    // if there was an exception in the worker threads, throw it again
+    if (exceptionPointer) {
+        std::rethrow_exception(exceptionPointer);
+    }
+    ...
+----
+
+All that remains is to combine the files that were created for parts of the tables into a single file for each of these tables.
+
+[source%autofit,cpp]
+----
+for (size_t i = 0; i < tables.size(); i++) {
+    const auto& tableDesc = tables[i];
+    // if the number of PP is greater than 1,
+    // then the table is large and there were several parts for it
+    if (tableDesc.pp_cnt > 1) {
+        // main file for the table
+        std::string fileName = tableDesc.relation_name + ".csv";
+        std::ofstream ofile(m_outputDir / fileName, std::ios::out | std::ios::app);
+        i++;
+        for (int64_t j = 1; j < tableDesc.pp_cnt; j++, i++) {
+            // files of table parts
+            std::string partFileName = fileName + ".part_" + std::to_string(j);
+            auto partFilePath = m_outputDir / partFileName;
+            std::ifstream ifile(partFilePath, std::ios::in);
+            ofile << ifile.rdbuf();
+            ifile.close();
+            fs::remove(partFilePath);
+        }
+        ofile.close();
+    }
+}
+----
+
+Let’s measure the performance of the tool in single-threaded and multi-threaded mode.
+
+== Benchmark of the `FBCSVExport` tool
+
+First, let’s look at the results of comparing multi-threaded and single-threaded export modes on the moderate home computer
+
+=== Windows
+
+* Operating system: Windows 10 x64.
+* CPU: Intel Core i3 8100, 4 ядра, 4 потока.
+* Memory: 16 Gb
+* Disk subsystem: NVME SSD (database), SATA SSD (folder for storing CSV file).
+* Firebird 4.0.4 x64
+
+Results:
+
+[source%autofit,bash]
+----
+CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 \
+  -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./single
+
+Elapsed time in milliseconds parallel_part: 35894 ms
+Elapsed time in milliseconds: 36317 ms
+
+CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 \
+  -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./multi
+
+Elapsed time in milliseconds parallel_part: 19259 ms
+Elapsed time in milliseconds: 20760 ms
+
+CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 \
+  -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./multi
+
+Elapsed time in milliseconds parallel_part: 19600 ms
+Elapsed time in milliseconds: 21137 ms
+----
+
+From the testing result it is clear that when using two threads, the acceleration was 1.8 times, which is a good result. But parallel execution of export in 4 threads also have shown 1.8X improvement. Why not at 3-4? The fact is that the Firebird server and the export utility are running on the same computer, which has only 4 cores. Thus, the Firebird server itself uses 4 threads to read the table, and the `FBCSVExport` utility also uses 4 threads. Obviously, in this case it is quite difficult to achieve an acceleration of more than 2 times. Therefore, we will try on another hardware, where the number of cores is significantly larger.
+
+=== Linux
+
+* Operating system: CentOS 8.
+* CPU: 2 Intel Xeon E5-2603 v4 processors, total 12 cores, 12 threads.
+* Memory: 32 Gb
+* Disk subsystem: SAS HDD (RAID 10)
+* Firebird 4.0.4 x64
+
+Results:
+
+[source%autofit,bash]
+----
+[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=1 \
+  -d inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./single
+
+Elapsed time in milliseconds parallel_part: 57547 ms
+Elapsed time in milliseconds: 57595 ms
+
+[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 \
+  -d inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./multi
+
+Elapsed time in milliseconds parallel_part: 17755 ms
+Elapsed time in milliseconds: 18148 ms
+
+[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=6 \
+  -d inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./multi
+
+Elapsed time in milliseconds parallel_part: 13243 ms
+Elapsed time in milliseconds: 13624 ms
+
+[denis@copyserver build]$ ./CSVExport -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=12 \
+  -d inet://localhost/horses -u SYSDBA -p masterkey --charset=UTF8 -o ./multi
+
+Elapsed time in milliseconds parallel_part: 12712 ms
+Elapsed time in milliseconds: 13140 ms
+----
+
+In this case, the optimal number of threads for export is 6 (6 threads for Firebird and 6 threads for the `FBCSVExport` utility). At the same time, we managed to achieve a 5x acceleration, which indicates fairly good scalability. On Linux server and Windows computer we have used the identical databases, and you probably noticed, that the single-thread export on Windows was almost 2 times faster: it is due to a faster disk subsystem (NVME drive is much faster than SAS drives combined in RAID).
+
+== Summary
+
+In this article, we considered how to effectively read data from Firebird DBMS tables using parallelism. Also, the example was shown of how you can use some of the capabilities of the Firebird DBMS to organize such reading in your software.
+
+Many thanks to Vladislav Khorsun, Firebird core developer, for help with this material.
+
+For any questions or comments please email to support@ib-aid.com.

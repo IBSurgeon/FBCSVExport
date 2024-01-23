@@ -5,6 +5,16 @@ This utility was created as an example for the article "Parallel reading of data
 * [Parallel reading of data in the Firebird DBMS.pdf](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird.pdf)
 * [Parallel reading of data in the Firebird DBMS.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird.zip)
 
+In English:
+
+* [Parallel_reading_in_Firebird_en.pdf](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_en.pdf)
+* [Parallel_reading_in_Firebird_ru.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_en_html.zip)
+
+In Russian:
+
+* [Parallel_reading_in_Firebird_ru.pdf](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_ru.pdf)
+* [Parallel_reading_in_Firebird_ru.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_ru_html.zip)
+
 The binary file for Windows can be downloaded from the link [CSVExport.exe](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/CSVExport.exe)
 
 

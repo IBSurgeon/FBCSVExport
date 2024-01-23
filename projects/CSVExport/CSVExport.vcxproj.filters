@@ -58,9 +58,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\README.md" />
-    <None Include="..\..\doc\Parallel_reading_in_Firebird.adoc">
+    <None Include="..\..\README_RU.md" />
+    <None Include="..\..\doc\Parallel_reading_in_Firebird_en.adoc">
       <Filter>doc</Filter>
     </None>
-    <None Include="..\..\README_RU.md" />
+    <None Include="..\..\doc\Parallel_reading_in_Firebird_ru.adoc">
+      <Filter>doc</Filter>
+    </None>
   </ItemGroup>
 </Project>
