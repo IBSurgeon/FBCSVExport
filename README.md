@@ -1,9 +1,6 @@
 # Firebird multi-threaded export example
 
-This utility was created as an example for the article "Parallel reading of data in the Firebird DBMS":
-
-* [Parallel reading of data in the Firebird DBMS.pdf](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird.pdf)
-* [Parallel reading of data in the Firebird DBMS.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird.zip)
+This utility was created as an example for the article "Parallel reading of data in the Firebird DBMS".
 
 In English:
 
