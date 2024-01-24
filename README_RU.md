@@ -12,8 +12,9 @@
 * [Parallel_reading_in_Firebird_en.pdf](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_en.pdf)
 * [Parallel_reading_in_Firebird_ru.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_en_html.zip)
 
-Бинарный файл для Windows можно скачать по ссылке [CSVExport.exe](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/CSVExport.exe)
+Утилита `FBCSVExport` является 100% бесплатной и с открытым исходным кодом, с лицензией [IDPL](https://www.firebirdsql.org/en/initial-developer-s-public-license-version-1-0/).
 
+Бинарный файл для Windows можно скачать по ссылке [CSVExport.exe](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/CSVExport.exe)
 
 Для операционных систем Linux, вы можете собрать утилиту из исходных файлов:
 
