@@ -44,7 +44,7 @@ Its description and its open source code are here: https://github.com/IBSurgeon/
 
 As you can see in the description of the utility and from the article below, through parallel processing it is possible to export data and perform other parallel operations 2-10x times faster than in 1 thread (depending on the hardware).
 
-For any questions, please contact support@ib-aid.com.
+For any questions, please contact mailto:support@ib-aid.com[support@ib-aid.com].
 
 == Parallel reading
 
@@ -621,4 +621,4 @@ In this article, we considered how to effectively read data from Firebird DBMS t
 
 Many thanks to Vladislav Khorsun, Firebird core developer, for help with this material.
 
-For any questions or comments please email to support@ib-aid.com.
+For any questions or comments please email to mailto:support@ib-aid.com[support@ib-aid.com].
