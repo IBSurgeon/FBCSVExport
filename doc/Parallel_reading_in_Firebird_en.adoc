@@ -48,7 +48,7 @@ For any questions, please contact support@ib-aid.com.
 
 == Parallel reading
 
-Let’s think about how to read data from several tables in parallel. As you know, Firebird allows you to execute queries in parallel only if each query is executed in a separate connection.
+Let’s think about how to read data in parallel. As you know, Firebird allows you to execute queries in parallel only if each query is executed in a separate connection.
 
 Let’s create a pool of worker threads. Main application thread is also a worker thread, so the number of additional worker threads should be N - 1, where N is the total number of parallel workers. Each worker thread will run its own connection and transaction.
 
