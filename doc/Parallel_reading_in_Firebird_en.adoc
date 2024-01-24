@@ -561,7 +561,7 @@ CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" -
 Elapsed time in milliseconds parallel_part: 35894 ms
 Elapsed time in milliseconds: 36317 ms
 
-CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=4 \
+CSVExport.exe -H --table-filter="COLOR|BREED|HORSE|COVER|MEASURE|LAB_LINE|SEX" --parallel=2 \
   -d inet://localhost:3054/horses -u SYSDBA -p masterkey --charset=WIN1251 -o ./multi
 
 Elapsed time in milliseconds parallel_part: 19259 ms
