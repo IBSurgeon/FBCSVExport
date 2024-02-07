@@ -10,7 +10,7 @@
 На английском языке:
 
 * [Parallel_reading_in_Firebird_en.pdf](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_en.pdf)
-* [Parallel_reading_in_Firebird_ru.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_en-html.zip)
+* [Parallel_reading_in_Firebird_en.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_en-html.zip)
 
 Утилита `FBCSVExport` является 100% бесплатной и с открытым исходным кодом, с лицензией [IDPL](https://www.firebirdsql.org/en/initial-developer-s-public-license-version-1-0/).
 

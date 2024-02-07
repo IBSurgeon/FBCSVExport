@@ -5,7 +5,7 @@ This utility was created as an example for the article "Parallel reading of data
 In English:
 
 * [Parallel_reading_in_Firebird_en.pdf](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_en.pdf)
-* [Parallel_reading_in_Firebird_ru.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_en-html.zip)
+* [Parallel_reading_in_Firebird_en.html](https://github.com/IBSurgeon/FBCSVExport/releases/download/1.0/Parallel_reading_in_Firebird_en-html.zip)
 
 In Russian:
 
