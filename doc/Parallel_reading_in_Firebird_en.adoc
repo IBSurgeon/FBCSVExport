@@ -1,7 +1,7 @@
 [[parallel-reading]]
 = Parallel Reading Of Data In Firebird
 D.Simonov, V.Horsun
-version 1.0.5 from 05.12.2023
+version 1.0.6 from 07.02.2024
 :doctype: book
 :sectnums!:
 :sectanchors:
@@ -96,25 +96,15 @@ ISC_INT64 getSnapshotNumber(Firebird::ThrowStatusWrapper* status, Firebird::ITra
 
     tra->getInfo(status, sizeof(in_buf), in_buf, sizeof(out_buf), out_buf);
 
-    unsigned char* p = out_buf, * e = out_buf + sizeof(out_buf);
-    while (p < e)
-    {
-        short len = 0;
-        switch (*p++)
-        {
-        case isc_info_error:
-        case isc_info_end:
-            p = e;
-            break;
+    auto fb_util = fb_master->getUtilInterface();
+    Firebird::AutoDispose<Firebird::IXpbBuilder> xpbParser(
+        fb_util->getXpbBuilder(status, Firebird::IXpbBuilder::INFO_RESPONSE, out_buf, sizeof(out_buf))
+    );
 
-        case fb_info_tra_snapshot_number:
-            len = static_cast<short>(isc_vax_integer(reinterpret_cast<char*>(p), 2));
-            p += 2;
-            ret = isc_portable_integer(p, len);
-            p += len;
-            break;
-        }
+    if (xpbParser->findFirst(status, fb_info_tra_snapshot_number)) {
+        ret = xpbParser->getBigInt(status);
     }
+        
     return ret;
 }
 ----  

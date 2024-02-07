@@ -27,9 +27,6 @@
     <ClCompile Include="..\..\src\sqlda.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\CSVFile.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\CSVFile.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
