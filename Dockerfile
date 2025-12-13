@@ -6,10 +6,8 @@ WORKDIR /app
 
 ADD https://github.com/FirebirdSQL/firebird.git#v${FIREBIRD_VERSION} /app/firebird
 
-COPY *packages.txt .
-
 RUN apt-get -qq update -y && apt-get -qq upgrade -y && \
-    xargs apt-get -qq install --no-install-recommends -y < packages.txt || echo "no system packages" && \
+    xargs apt-get -qq install --no-install-recommends -y cmake build-essential && \
     apt-get -qq clean -y && apt-get -qq autoremove -y && rm -rf /var/lib/apt/lists/*
 
 COPY . .
