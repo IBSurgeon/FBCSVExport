@@ -368,7 +368,7 @@ namespace FBExport
                 if (auto pos = arg.find("--parallel="); pos == 0) {
                     std::string par = arg.substr(11);
                     m_parallel = std::stoi(par);
-                    if (m_parallel < 0) {
+                    if (m_parallel <= 0) {
                         std::cerr << "Error: parallel must be greater than 0" << std::endl;
                         exit(-1);
                     }
