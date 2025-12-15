@@ -36,14 +36,14 @@ namespace Firebird
         char relation[63 * 4]{ "" };
         char owner[63 * 4]{ "" };
         char alias[63 * 4]{ "" };
-        unsigned type = 0;
-        bool nullable = false;
+        unsigned type = 0;     
         int sub_type = 0;
         unsigned length = 0;
         int scale = 0;
         unsigned charset = 0;
         unsigned offset = 0;
         unsigned nullOffset = 0;
+        bool nullable = false;
     };
 
     using SQLDAList = std::vector<SQLDA>;

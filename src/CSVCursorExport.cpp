@@ -300,13 +300,13 @@ namespace FBExport
 				{
 					if (field.charset == 1) {
 						// VARBINARY(N)
-						auto len = *reinterpret_cast<short*>(valuePtr);
+						auto len = *reinterpret_cast<unsigned short*>(valuePtr);
 						std::byte* b = reinterpret_cast<std::byte*>(valuePtr + 2);
 						csv << getBinaryString(b, len);
 					}
 					else {
 						// VARCHAR(N)
-						auto len = *reinterpret_cast<short*>(valuePtr);
+						auto len = *reinterpret_cast<unsigned short*>(valuePtr);
 						std::string s(reinterpret_cast<char*>(valuePtr + 2), len);
 						csv << s;
 					}
