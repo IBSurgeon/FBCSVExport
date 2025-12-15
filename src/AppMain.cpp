@@ -436,7 +436,7 @@ namespace FBExport
                     break;
                 case OptState::PARALLEL:
                     m_parallel = std::stoi(arg);
-                    if (m_parallel < 0) {
+                    if (m_parallel <= 0) {
                         std::cerr << "Error: parallel must be greater than 0" << std::endl;
                         exit(-1);
                     }
