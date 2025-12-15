@@ -32,60 +32,66 @@
 #ifndef INCLUDE_FB_TYPES_H
 #define INCLUDE_FB_TYPES_H
 
-#ifdef _WINDOWS
-#define SIZEOF_LONG 4
-#else
-#define SIZEOF_LONG 8
-#endif
+#include <climits>
+#include <type_traits>
 
+inline constexpr size_t SIZEOF_LONG = sizeof(long);
 
-#include <limits.h>
+static_assert(SIZEOF_LONG == 4 || SIZEOF_LONG == 8,
+    "compile_time_failure: sizeof_long must be either 4 or 8");
 
-#if SIZEOF_LONG == 8
-    /* EKU: Firebird requires (S)LONG to be 32 bit */
-    typedef int SLONG;
-    typedef unsigned int ULONG;
-    const SLONG SLONG_MIN = INT_MIN;
-    const SLONG SLONG_MAX = INT_MAX;
-#elif SIZEOF_LONG == 4
-    typedef long SLONG;
-    typedef unsigned long ULONG;
-    const SLONG SLONG_MIN = LONG_MIN;
-    const SLONG SLONG_MAX = LONG_MAX;
-#else
-#error compile_time_failure: SIZEOF_LONG not specified
-#endif
+using SLONG = std::conditional_t<SIZEOF_LONG == 8, int, long>;
+using ULONG = std::conditional_t<SIZEOF_LONG == 8, unsigned int, unsigned long>;
+
+inline constexpr SLONG SLONG_MIN = []() {
+    if constexpr (SIZEOF_LONG == 8) {
+        return INT_MIN;
+    }
+    else {
+        return LONG_MIN;
+    }
+    }();
+
+inline constexpr SLONG SLONG_MAX = []() {
+    if constexpr (SIZEOF_LONG == 8) {
+        return INT_MAX;
+    }
+    else {
+        return LONG_MAX;
+    }
+}();
 
 /* Basic data types */
 
-typedef char SCHAR;
+using SCHAR = char;
+using UCHAR = unsigned char;
 
-typedef unsigned char UCHAR;
-typedef short SSHORT;
-typedef unsigned short USHORT;
+using SSHORT = short;
+using USHORT = unsigned short;
 
 #ifdef _WINDOWS
-typedef __int64 SINT64;
-typedef unsigned __int64 FB_UINT64;
+using SINT64 = __int64;
+using FB_UINT64 = unsigned __int64;
 #else
-typedef long long int SINT64;
-typedef unsigned long long int FB_UINT64;
+using SINT64 = long long int;
+using FB_UINT64 = unsigned long long int;
 #endif
+
 
 /* Substitution of API data types */
 
-typedef SCHAR ISC_SCHAR;
-typedef UCHAR ISC_UCHAR;
-typedef SSHORT ISC_SHORT;
-typedef USHORT ISC_USHORT;
-typedef SLONG ISC_LONG;
-typedef ULONG ISC_ULONG;
-typedef SINT64 ISC_INT64;
-typedef FB_UINT64 ISC_UINT64;
+using ISC_SCHAR = SCHAR;
+using ISC_UCHAR = UCHAR;
+using ISC_SHORT = SSHORT;
+using ISC_USHORT = USHORT;
+using ISC_LONG = SLONG;
+using ISC_ULONG = ULONG;
+using ISC_INT64 = SINT64;
+using ISC_UINT64 = FB_UINT64;
 
 #include "firebird/impl/types_pub.h"
 
-typedef ISC_QUAD SQUAD;
+using SQUAD = ISC_QUAD;
 
 /*
  * TMN: some misc data types from all over the place
@@ -103,21 +109,21 @@ struct lstring
     UCHAR*	lstr_address;
 };
 
-typedef unsigned char BOOLEAN;
-typedef char TEXT;				/* To be expunged over time */
-typedef unsigned char BYTE;		/* Unsigned byte - common */
-typedef intptr_t IPTR;
-typedef uintptr_t U_IPTR;
+using BOOLEAN = unsigned char;
+using TEXT = char; /* To be expunged over time */
+using BYTE = unsigned char; /* Unsigned byte - common */
+using IPTR = intptr_t;
+using U_IPTR = uintptr_t;
 
-typedef void (*FPTR_VOID) ();
-typedef void (*FPTR_VOID_PTR) (void*);
-typedef int (*FPTR_INT) ();
-typedef int (*FPTR_INT_VOID_PTR) (void*);
-typedef void (*FPTR_PRINT_CALLBACK) (void*, SSHORT, const char*);
+using FPTR_VOID = void(*)();
+using FPTR_VOID_PTR = void(*)(void*);
+using FPTR_INT = int(*)();
+using FPTR_INT_VOID_PTR = int(*)(void*);
+using FPTR_PRINT_CALLBACK = void(*)(void*, SSHORT, const char*);
 /* Used for isc_version */
-typedef void (*FPTR_VERSION_CALLBACK)(void*, const char*);
+using FPTR_VERSION_CALLBACK = void(*)(void*, const char*);
 /* Used for isc_que_events and internal functions */
-typedef void (*FPTR_EVENT_CALLBACK)(void*, USHORT, const UCHAR*);
+using FPTR_EVENT_CALLBACK = void(*)(void*, USHORT, const UCHAR*);
 
 /* The type of JRD's ERR_post, DSQL's ERRD_post & post_error,
  * REMOTE's move_error & GPRE's post_error.
@@ -127,43 +133,47 @@ namespace Firebird {
         class StatusVector;
     }
 }
-typedef void (*ErrorFunction) (const Firebird::Arg::StatusVector& v);
+using ErrorFunction = void (*)(const Firebird::Arg::StatusVector& v);
 // kept for backward compatibility with old private API (CVT_move())
-typedef void (*FPTR_ERROR) (ISC_STATUS, ...);
+using FPTR_ERROR = void (*)(ISC_STATUS, ...);
 
-typedef ULONG RCRD_OFFSET;
-typedef ULONG RCRD_LENGTH;
-typedef USHORT FLD_LENGTH;
+using RCRD_OFFSET = ULONG;
+using RCRD_LENGTH = ULONG;
+using FLD_LENGTH = USHORT;
 /* CVC: internal usage. I suspect the only reason to return int is that
 vmslock.cpp:LOCK_convert() calls VMS' sys$enq that may require this signature,
 but our code never uses the return value. */
-typedef int (*lock_ast_t)(void*);
+using lock_ast_t = int (*)(void*);
 
 /* Number of elements in an array */
-#define FB_NELEM(x)	((int)(sizeof(x) / sizeof(x[0])))
+template <typename T, std::size_t N>
+constexpr FB_SIZE_T FB_NELEM(const T(&)[N]) noexcept
+{
+    return static_cast<FB_SIZE_T>(N);
+}
 
 // Intl types
-typedef SSHORT CHARSET_ID;
-typedef SSHORT COLLATE_ID;
-typedef USHORT TTYPE_ID;
+using CHARSET_ID = SSHORT;
+using COLLATE_ID = SSHORT;
+using TTYPE_ID = USHORT;
 
 // Stream type, had to move it from dsql/Nodes.h due to circular dependencies.
-typedef ULONG StreamType;
+using StreamType = ULONG;
 
 // Alignment rule
 template <typename T>
-inline T FB_ALIGN(T n, uintptr_t b)
+constexpr T FB_ALIGN(T n, uintptr_t b)
 {
-    return (T) ((((uintptr_t) n) + b - 1) & ~(b - 1));
+    return (T)((((uintptr_t)n) + b - 1) & ~(b - 1));
 }
 
 // Various object IDs (longer-than-32-bit)
 
-typedef FB_UINT64 AttNumber;
-typedef FB_UINT64 TraNumber;
-typedef FB_UINT64 StmtNumber;
-typedef FB_UINT64 CommitNumber;
-typedef ULONG SnapshotHandle;
-typedef SINT64 SavNumber;
+using AttNumber = FB_UINT64;
+using TraNumber = FB_UINT64;
+using StmtNumber = FB_UINT64;
+using CommitNumber = FB_UINT64;
+using SnapshotHandle = ULONG;
+using SavNumber = SINT64;
 
 #endif /* INCLUDE_FB_TYPES_H */

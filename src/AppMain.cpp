@@ -157,7 +157,7 @@ namespace FBExport
         );
         std::vector<unsigned char> inputData(inputMeta->getMessageLength(status));
         *reinterpret_cast<short*>(inputData.data() + inputMeta->getNullOffset(status, 0)) = false; // nullInd
-        *reinterpret_cast<short*>(inputData.data() + inputMeta->getOffset(status, 0)) = static_cast<short>(tableIncludeFilter.size());
+        *reinterpret_cast<unsigned short*>(inputData.data() + inputMeta->getOffset(status, 0)) = static_cast<unsigned short>(tableIncludeFilter.size());
         tableIncludeFilter.copy(reinterpret_cast<char*>(inputData.data() + inputMeta->getOffset(status, 0) + 2), tableIncludeFilter.size());
 
         Firebird::AutoRelease<Firebird::IResultSet> rs(stmt->openCursor(
