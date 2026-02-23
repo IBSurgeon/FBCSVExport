@@ -99,6 +99,7 @@ std::string getScaledInteger(const T value, short scale)
 	auto factor = static_cast<T>(NUMERIC_FACTORS[-scale]);
 	auto int_value = value / factor;
 	auto frac_value = value % factor;
+	if (frac_value < 0) frac_value = -frac_value;
 	return vformat("%d.%0*d", int_value, -scale, frac_value);
 }
 
@@ -463,4 +464,3 @@ namespace FBExport
 		}
 	}
 } // namespace FBExport
-
