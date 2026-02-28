@@ -388,6 +388,9 @@ FodyWeavers.xsd
 # Local History for Visual Studio Code
 .history/
 
+# Jetbrains files for those working on multiple tools
+.idea/
+
 # Windows Installer files from build outputs
 *.cab
 *.msi
